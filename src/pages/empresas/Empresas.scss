@@ -1,0 +1,214 @@
+/* Estilos generales */
+.empresas-container {
+    font-family: Arial, sans-serif;
+    background-color: #2a3447;
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1000px;
+  }
+  
+  h1 {
+    text-align: center;
+    color: #fff; /* Color blanco para el título */
+  }
+  
+  /* Estilos de la tabla */
+  .tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .tabla th, .tabla td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #444; /* Color más oscuro para las líneas */
+  }
+  
+  /* Encabezado de la tabla */
+  .tabla th {
+    background-color: #2a3447; /* Fondo oscuro para las cabeceras */
+    color: #ffffff; /* Texto blanco */
+    font-weight: bold;
+  }
+  
+  /* Filas pares con fondo alterno */
+  .tabla tr:nth-child(even) {
+    background-color: #f9f9f9; /* Fondo gris muy claro para mejorar la visibilidad */
+  }
+  
+  /* Filas impares con fondo alterno */
+  .tabla tr:nth-child(odd) {
+    background-color: #ffffff; /* Blanco para filas impares */
+  }
+  
+  /* Estilos de las celdas de la tabla */
+  .tabla td {
+    color: #333; /* Color de texto más oscuro para una mejor lectura */
+  }
+  
+  /* Efecto al pasar el cursor sobre las filas */
+  .tabla tr:hover {
+    background-color: #e0e0e0; /* Fondo gris claro al pasar el cursor */
+  }
+  
+  /* Estilos para los botones */
+  .btn {
+    padding: 8px 16px;
+    margin: 0 5px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  
+  /* Botón de modificar */
+  .modificar {
+    background-color: #4caf50; /* Verde para modificar */
+    color: white;
+  }
+  
+  .modificar:hover {
+    background-color: #45a049; /* Un verde más oscuro al pasar el cursor */
+  }
+  
+  /* Botón de eliminar */
+  .eliminar {
+    background-color: #f44336; /* Rojo para eliminar */
+    color: white;
+  }
+  
+  .eliminar:hover {
+    background-color: #e53935; /* Un rojo más oscuro al pasar el cursor */
+  }
+  
+  /* Fondo del modal */
+.modal {
+  display: flex;
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8); /* Fondo más oscuro */
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+
+/* Efecto de entrada del modal */
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background-color: #2a3447;
+  padding: 30px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5); /* Sombra envolvente */
+  position: relative;
+  color: #ffffff;
+  text-align: center;
+  transform: translateY(-20px);
+  animation: slideDown 0.3s forwards;
+}
+
+/* Animación de entrada suave del contenido del modal */
+@keyframes slideDown {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modal h2 {
+  margin-top: 0;
+  font-size: 1.8em;
+  color: #ffce4b;
+  margin-bottom: 15px;
+}
+
+/* Estilos para los inputs */
+.modal-content label {
+  display: block;
+  font-size: 0.9em;
+  margin: 10px 0 5px;
+  color: #b0b8c1;
+  text-align: left;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0 15px;
+  border: 1px solid #4a5a7a;
+  border-radius: 8px;
+  background-color: #1e2a3a;
+  color: #ffffff;
+  outline: none;
+  font-size: 0.9em;
+}
+
+/* Estilos para los botones del modal */
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.modal-buttons button {
+  flex: 1;
+  padding: 10px 0;
+  margin: 0 5px;
+  font-size: 1em;
+  font-weight: bold;
+  color: #fff;
+  background-image: linear-gradient(135deg, #ffce4b, #f98e2a);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:  0.3s, transform 0.2s;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.modal-buttons button:hover {
+  background-image: linear-gradient(135deg, #f98e2a, #ffce4b);
+  transform: scale(1.05);
+}
+
+.modal-buttons button:active {
+  transform: scale(1);
+}
+
+
+.modal-buttons button:last-child {
+  background-color: #3a4a62;
+  background-image: none;
+}
+
+.modal-buttons button:last-child:hover {
+  background-color: #526280;
+}
+
+
+.close-modal {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 1.5em;
+  color: #ffce4b;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.close-modal:hover {
+  color: #f98e2a;
+}
+
+
+  

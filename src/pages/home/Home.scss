@@ -1,0 +1,60 @@
+
+//@import "../../styles/variables.scss";//
+:root {
+  /* BG */
+  --main-bg: #2a3447;
+  --soft-bg: #384256;
+  --dark-bg: #222b3c;
+
+  /* Text */
+  --main-color: white;
+  --soft-color: #ddd;
+  --dark-color: #2a3447;
+}
+
+
+
+.home {
+  margin-left: 100px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(180px, auto);
+
+  .box{
+    padding: 20px;
+    border-radius: 10px;
+    // border: 4px solid var(--soft-bg); 
+    border:  2px solid #0a3c56;
+    box-shadow: 0 0 10px rgba(102, 116, 140, 0.7); 
+    transition: border 0.3s, box-shadow 0.3s;
+    
+  }
+
+  .box1{
+    border-radius: 10px;
+    grid-column: span 1;
+    grid-row: span 3;
+  }
+
+  .box4{
+    border-radius: 10px;
+    grid-column: span 1;
+    grid-row: span 3;
+  }
+
+  .box7{
+    border-radius: 10px;
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .box:hover,
+.box:focus,
+.box:active {
+  border-color: #0a3c56; 
+  
+  box-shadow: 0 0 8px #ddd;
+}
+ 
+}

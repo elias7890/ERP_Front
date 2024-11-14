@@ -1,3 +1,17 @@
+//@use "../styles/variables.scss" as *;//
+
+:root {
+  /* BG */
+  --main-bg: #2a3447;
+  --soft-bg: #384256;
+  --dark-bg: #222b3c;
+
+  /* Text */
+  --main-color: white;
+  --soft-color: #ddd;
+  --dark-color: #2a3447;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -7,4 +21,25 @@
 a {
   text-decoration: none;
   color: inherit;
+}
+
+.main{
+  font-family: "Inter", sans-serif;
+  background-color: var(--main-bg);
+  color: var(--main-color);
+}
+
+.container{
+  display: flex;
+}
+
+.menuContainer{
+  // width: 20px;
+  padding: 5px 20px;
+  border-right: 2px solid var(--soft-bg);
+}
+
+.contentContainer{
+  padding: 5px 20px;
+  width: 100%;
 }
