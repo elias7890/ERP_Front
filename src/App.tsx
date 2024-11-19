@@ -8,6 +8,8 @@ import Menu from "./components/menu/Menu"
 import Login from "./pages/login/Login";
 import "./styles/global.scss";
 import Empresas from "./pages/empresas/Empresas";
+import Funcionarios from "./pages/funcionarios/Funcionarios";
+
 
 function App() {
 
@@ -56,6 +58,11 @@ function App() {
           path:"/Empresas",
           element:<Empresas/>,
 
+        },
+        {
+          path:"/Funcionarios",
+          element:<Funcionarios/>,
+          
         }
       ]   
     },

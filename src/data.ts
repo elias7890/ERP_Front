@@ -63,8 +63,9 @@ export const menu = [
         {
           id: 3,
           title: "Funcionarios",
-          url: "/orders",
+          url: "/Funcionarios",
           icon: "user.svg",
+          
         },
         {
           id: 4,
