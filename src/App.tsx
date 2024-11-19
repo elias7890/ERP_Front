@@ -9,6 +9,8 @@ import Login from "./pages/login/Login";
 import "./styles/global.scss";
 import Empresas from "./pages/empresas/Empresas";
 import Funcionarios from "./pages/funcionarios/Funcionarios";
+import Registro from "./pages/registro/Registro";
+
 
 
 function App() {
@@ -62,8 +64,12 @@ function App() {
         {
           path:"/Funcionarios",
           element:<Funcionarios/>,
-          
-        }
+        },
+        {
+          path:"/Registro",
+          element:<Registro/>,
+        },
+        
       ]   
     },
     {

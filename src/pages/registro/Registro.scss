@@ -1,0 +1,122 @@
+.formulario-container {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .navFunc {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    background-color: #007bff;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  
+  .navFunc .tab {
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .navFunc .tab:hover {
+    background-color: #0056b3;
+  }
+  
+  .navFunc .tab.active {
+    background-color: #0056b3;
+  }
+  
+  .user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-section {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+  }
+  
+  .form-section h3 {
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .form-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  
+  .form-group label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    color: black;
+  }
+  
+  .input-small, .selct {
+    width: 80%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+  }
+  
+  .input-small:focus, .selct:focus {
+    border-color: #007bff;
+    background-color: white;
+    outline: none;
+  }
+  
+  .form-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .btn-edit {
+    background-color: #ffc107;
+    color: #fff;
+  }
+  
+  .btn-edit:hover {
+    background-color: #e0a800;
+  }
+  
+  .btn-save {
+    background-color: #28a745;
+    color: #fff;
+  }
+  
+  .btn-save:hover {
+    background-color: #218838;
+  }
+  
+  .terminos-section .form-item {
+    grid-column: span 2;
+  }
+  
