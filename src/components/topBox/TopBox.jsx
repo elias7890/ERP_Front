@@ -29,35 +29,35 @@
 
 import React, { useEffect, useState } from 'react';
 import "./TopBox.scss";
-import { fetchIndicators } from "../../apis/indicador";
+// import { fetchIndicators } from "../../apis/indicador";
 
 const TopBox = () => {
   const [topDealUsers, setTopDealUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadIndicators = async () => {
-      try {
-        setLoading(true); 
-        const data = await fetchIndicators(); 
-        setTopDealUsers(data);
-      } catch (error) {
-        setError(error);
-      } finally {
-        setLoading(false); 
-      }
-    };
+  // useEffect(() => {
+  //   const loadIndicators = async () => {
+  //     try {
+  //       setLoading(true); 
+  //       const data = await fetchIndicators(); 
+  //       setTopDealUsers(data);
+  //     } catch (error) {
+  //       setError(error);
+  //     } finally {
+  //       setLoading(false); 
+  //     }
+  //   };
 
-    loadIndicators();
-  }, []);
+  //   loadIndicators();
+  // }, []);
 
-  if (loading) return <p>Cargando...</p>;
-  if (error) return <p>Error al cargar los datos.</p>;
+  // if (loading) return <p>Cargando...</p>;
+  // if (error) return <p>Error al cargar los datos.</p>;
 
   return (
     <div className="topBox">
-      <h1>Indicadores Financieros</h1>
+      {/* <h1>Indicadores Financieros</h1>
       <div className="list">
         {topDealUsers.map(user => (
           <div className="listItem" key={user.id}>
@@ -71,7 +71,7 @@ const TopBox = () => {
             <span className="amount">${user.amount}</span>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };

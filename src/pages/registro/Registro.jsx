@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import "./Registro.scss";
 import { Link, Outlet } from "react-router-dom";
+import { cargarFuncionario } from '../../apis/indicador';
 
 
 function Registro() {
@@ -16,9 +17,9 @@ function Registro() {
       cursoos10:"",
       estudios:"",
       email: "",
-      rut: "",
+      rut_funcionario: "",
       nacionalidad: "",
-      num_Hijos: "",
+      num_hijos: "",
       telefono: "",
       afp: "",
       salud: "",
@@ -43,6 +44,9 @@ function Registro() {
       alergico:"",
     });
 
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(false);
+
     // Manejar cambios en los campos del formulario
     const handleChange = (e) => {
       const { name, value } = e.target;
@@ -54,61 +58,51 @@ function Registro() {
 
     // Manejar envío del formulario
     const handleSubmit = async (e) => {
-      e.preventDefault();
-      console.log("Datos a enviar:", formData);
-      try {
-        const response = await fetch("http://127.0.0.1:8000/api/funcionarios", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-          
+      e.preventDefault();     
+      const result = await cargarFuncionario(formData);
+  
+      if (result.success) {
+        setSuccess(true);
+        setError(null);
+        alert("Datos guardados exitosamente");
+        
+        setFormData({
+          nombre_completo: "",
+          fecha_nacimiento: "",
+          estado_civil: "",
+          domicilio: "",
+          email: "",
+          cursoos10: "",
+          rut_funcionario: "",
+          nacionalidad: "",
+          num_hijos: "",
+          telefono: "",
+          afp: "",
+          salud: "",
+          banco: "",
+          num_cuenta: "",
+          estudios: "",
+          tipo_cuenta: "",
+          contacto_emergencia: "",
+          direccion_emergencia: "",
+          telefono_emergencia: "",
+          jornada: "",
+          tipo_contrato: "",
+          instalacion: "",
+          ubicacion: "",
+          horario: "",
+          sueldo: "",
+          fecha_ingreso: "",
+          camisa: "",
+          parka: "",
+          polar: "",
+          pantalon: "",
+          zapatos: "",
+          alergico: "",
         });
-
-        if (response.ok) {
-          alert("Datos guardados exitosamente");
-          // Limpia el formulario si es necesario
-          setFormData({
-            nombre_completo: "",
-            fecha_nacimiento: "",
-            estado_civil: "",
-            domicilio: "",
-            email: "",
-            cursoos10:"",
-            rut: "",
-            nacionalidad: "",
-            num_Hijos: "",
-            telefono: "",
-            afp: "",
-            salud: "",
-            banco: "",
-            num_cuenta: "",
-            estudios:"",
-            tipo_cuenta: "",
-            contacto_emergencia: "",
-            direccion_emergencia: "",
-            telefono_emergencia: "",
-            jornada: "",
-            tipo_contrato: "",
-            instalacion: "",
-            ubicacion: "",
-            horario: "",
-            sueldo: "",
-            fecha_ingreso: "",
-            camisa: "",
-            parka: "",
-            polar: "",
-            pantalon: "",
-            zapatos: "",
-            alergico:"",
-          });
-        } else {
-          alert("Hubo un problema al guardar los datos");
-        }
-      } catch (error) {
-        console.error("Error al enviar los datos:", error);
-        alert("Error de conexión");
+      } else {
+        setError(result.message || "Hubo un error al guardar los datos");
+        setSuccess(false);
       }
     };
 
@@ -166,7 +160,7 @@ function Registro() {
                     <input type="text" name="nombre_completo" className='input-small' value={formData.nombre_completo} onChange={handleChange}/>
 
                     <label>Cédula de identidad:</label>
-                    <input type="text" name="rut" className='input-small' value={formData.rut} onChange={handleChange}/>
+                    <input type="text" name="rut_funcionario" className='input-small' value={formData.rut_funcionario} onChange={handleChange}/>
         
                     <label>Fecha de nacimiento:</label>
                     <input type="date" name="fecha_nacimiento" className='input-small' value={formData.fecha_nacimiento} onChange={handleChange} />
@@ -241,8 +235,8 @@ function Registro() {
                   <label>Tipo de cuenta:</label>
                   <select name="tipo_cuenta" id=""className='selct' value={formData.tipo_cuenta} onChange={handleChange}>
                     <option value=""> Seleccione</option>
-                    <option value="CuentaC">Cuenta Corriente</option>
-                    <option value="CuentaV">Cuenta Vista</option>
+                    <option >Cuenta Corriente</option>
+                    <option >Cuenta Vista</option>
                     
                   </select>
                   
@@ -264,7 +258,7 @@ function Registro() {
                   <input type="tel" name="telefono_emergencia" className='input-small' value={formData.telefono_emergencia} onChange={handleChange}/>
 
                   <label>N° de cargas familiares:</label>
-                  <input type="number" name="num_Hijos" className='input-small' value={formData.num_Hijos} onChange={handleChange}/>
+                  <input type="number" name="num_hijos" className='input-small' value={formData.num_hijos} onChange={handleChange}/>
                 </div>
               </section>
               )}
@@ -325,10 +319,10 @@ function Registro() {
                         <label>Camisa</label>
                         <select name="camisa" id="" className="selct" value={formData.camisa} onChange={handleChange}>
                             <option value="">Selecione</option>
-                            <option value="cs">Talla S</option>
-                            <option value="cM">Talla M</option>
-                            <option value="cL">Talla L</option>
-                            <option value="cXL">Talla XL</option>
+                            <option >Talla S</option>
+                            <option >Talla M</option>
+                            <option>Talla L</option>
+                            <option >Talla XL</option>
                         </select>
                     </div>
 
@@ -336,10 +330,10 @@ function Registro() {
                         <label>Parka</label>
                         <select name="parka" id="" className="selct" value={formData.parka} onChange={handleChange}>
                             <option value="">Selecione</option>
-                            <option value="ps">Talla S</option>
-                            <option value="pM">Talla M</option>
-                            <option value="pL">Talla L</option>
-                            <option value="pXL">Talla XL</option>
+                            <option >Talla S</option>
+                            <option >Talla M</option>
+                            <option >Talla L</option>
+                            <option >Talla XL</option>
                         </select>
                     </div>
 
@@ -347,10 +341,10 @@ function Registro() {
                         <label>Polar</label>
                         <select name="polar" id="" className="selct" value={formData.polar} onChange={handleChange}>
                             <option value="">Selecione</option>
-                            <option value="pos">Talla S</option>
-                            <option value="poM">Talla M</option>
-                            <option value="poL">Talla L</option>
-                            <option value="poXL">Talla XL</option>
+                            <option >Talla S</option>
+                            <option >Talla M</option>
+                            <option >Talla L</option>
+                            <option >Talla XL</option>
                         </select>
                     </div>
 
@@ -358,10 +352,10 @@ function Registro() {
                         <label>Pantalon</label>
                         <select name="pantalon" id="" className="selct" value={formData.pantalon} onChange={handleChange}>
                             <option value="">Selecione</option>
-                            <option value="pas">Talla S</option>
-                            <option value="paM">Talla M</option>
-                            <option value="paL">Talla L</option>
-                            <option value="paXL">Talla XL</option>
+                            <option >Talla S</option>
+                            <option >Talla M</option>
+                            <option >Talla L</option>
+                            <option >Talla XL</option>
                         </select>
                     </div>
 
@@ -374,15 +368,13 @@ function Registro() {
                 &nbsp;
                 &nbsp;
                 <div className="form-buttons">
+                {error && <div className="error">{error}</div>}
+                {success && <div className="success">Funcionario guardado correctamente</div>}
                 <button type="button" className="btn btn-edit">Modificar</button>
                 <button type="submit" className="btn btn-save">Guardar</button>
               </div>
               </section>
               )}
-
-      
-              {/* Botones de acción */}
-              
               </form>
               </div>
         

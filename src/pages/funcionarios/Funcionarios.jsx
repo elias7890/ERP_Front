@@ -1,8 +1,45 @@
-import React from "react";
+import React, { useState } from "react";
 import "./Funcionarios.scss";
+import { buscarFuncionarioPorRut, descargarPDF} from "../../apis/indicador";
 
 
 function Funcionarios()  {
+
+  const [funcionario, setfuncionario] = useState(null);
+  const [rut, setRut] = useState("");
+  const [rutBuscado, setRutBuscado] = useState("");
+
+  const handleBuscarFuncionario = async () => {
+    try {
+      const data = await buscarFuncionarioPorRut(rut);
+      setfuncionario(data);
+      setRutBuscado(rut);
+    } catch (error) {
+      setFuncionario(null);
+    }
+  };
+
+  const handleDescargarPDF = async () => {
+    if (!rutBuscado) {
+      console.error("No se ha realizado una búsqueda para descargar el PDF.");
+      return;
+    }
+  
+    try {
+      const pdfBlob = await descargarPDF(rutBuscado); 
+      const url = window.URL.createObjectURL(pdfBlob); 
+      const a = document.createElement("a");
+      a.href = url; 
+      a.download = `Funcionario_${rutBuscado}.pdf`; 
+      document.body.appendChild(a); 
+      a.click(); 
+      a.remove(); 
+      console.log("PDF descargado exitosamente.");
+    } catch (error) {
+      console.error("Error al descargar el PDF:", error.message);
+    }
+  };
+  
 
 
   return (
@@ -15,69 +52,103 @@ function Funcionarios()  {
         <button>Vacaciones</button>
         <button>Historial</button>
       </nav>
+      <div className="search-container">
+      <input
+        type="text"
+        value={rut}
+        onChange={(e) => setRut(e.target.value)}
+        placeholder="Ingresa el RUT"
+      />
+      <button onClick={handleBuscarFuncionario}>Buscar Funcionario</button>
+      </div>
       <div className="profile-header">
         <div className="profile-picture">👤</div>
         <div className="profile-details">
-          <h3>Francisca Bárbara Tapia Reyes</h3>
-          <p>RUT: 20.183.653-7</p>
-          <p>Dirección: Población Don Sebastián #139, Sagrada Familia</p>
+        {funcionario ? (
+            <>
+              <h3>{funcionario.nombre_completo}</h3>
+              <p>RUT: {funcionario.rut_funcionario}</p>
+              <p>Dirección: {funcionario.domicilio}</p>
+            </>
+          ) : (
+            <p>No hay datos del funcionario. Realice una búsqueda.</p>
+          )}
         </div>
         <div className="form-buttons">    
-          <button type="submit" className="btn btn-save">Exportar a PDF</button>
+          <button onClick={handleDescargarPDF} className="btn btn-save">Exportar a PDF</button>
         </div>
       </div>
+      <div>
+        {funcionario ? (
       <table className="table-layout">
         <tbody>
+          <tr>
+            <th><strong>Informacion personal</strong></th>
+            <th></th>
+          </tr>
           {/* Información Personal */}
           <tr>
-            <th>Fecha de nacimiento:&nbsp;21/06/1887</th>
-            <th>Nacionalidad:&nbsp;Chilena</th>
+            <th>Fecha de nacimiento:&nbsp;{funcionario.fecha_nacimiento}</th>
+            <th>Nacionalidad:&nbsp;{funcionario.nacionalidad}</th>
           </tr>
           <tr>
-            <th>Domicilio:&nbsp; por aqui</th>
-            <th>N° de hijos:&nbsp;2</th>
+            <th>Domicilio:&nbsp;{funcionario.domicilio}</th>
+            <th>N° de hijos:&nbsp;{funcionario.num_hijos}</th>
           </tr>
           <tr>
-            <th>Estado Civil:&nbsp;Casada</th>
-            <th>Email:&nbsp;loquesea@gmail.com</th>
+            <th>Estado Civil:&nbsp;{funcionario.estado_civil}</th>
+            <th>Email:&nbsp;{funcionario.email}</th>
           </tr>
           <tr>
-            <th>Teléfono:&nbsp;123456799</th>
+            <th>Teléfono:&nbsp;{funcionario.telefono}</th>
             <th></th>
           </tr>
           <tr>
-          <th>Discapacidad:&nbsp;No</th> 
+          <th>Discapacidad:&nbsp;Si</th> 
           <th>Asiganación de pesión de inavalidez:&nbsp; Si/No</th>
           </tr>
-
+           <tr>
+             <th><strong>Datos de Previsión y Salud</strong></th>
+             <th></th>
+           </tr>
           {/* Datos de Previsión y Salud */}
           <tr>
-            <th>AFP:&nbsp;Provida</th>
-            <th>Salud:&nbsp;Fonasa</th>
+            <th>AFP:&nbsp;{funcionario.afp}</th>
+            <th>Salud:&nbsp;{funcionario.salud}</th>
             
           </tr>
-
-          {/* Información Bancaria */}
           <tr>
-            <th>Banco:&nbsp;Banco Falabella</th>
-            <th>N° Cuenta:&nbsp;[Número de cuenta]</th>
-          </tr>
-          <tr>
-            <th>Tipo de cuenta:&nbsp;Cuenta corriente</th>
+            <th><strong>Información Bancaria</strong></th>
             <th></th>
           </tr>
-
-          {/* Contacto de Emergencia */}
+          {/* Información Bancaria */}
           <tr>
-            <th>Contacto emergencia:&nbsp;987665412</th>
-            <th>Dirección emergencia:&nbsp;calle falsa</th>
+            <th>Banco:&nbsp;{funcionario.banco}</th>
+            <th>N° Cuenta:&nbsp;{funcionario.num_cuenta}</th>
           </tr>
           <tr>
-            <th>Teléfono emergencia:&nbsp;5631478</th>
+            <th>Tipo de cuenta:&nbsp;{funcionario.tipo_cuenta}</th>
+            <th></th>
+          </tr>
+          <tr>
+            <th><strong>Contacto de Emergencia</strong></th>
+            <th></th>
+          </tr>
+          {/* Contacto de Emergencia */}
+          <tr>
+            <th>Contacto emergencia:&nbsp;{funcionario.contacto_emergencia}</th>
+            <th>Dirección emergencia:&nbsp;{funcionario.direccion_emergencia}</th>
+          </tr>
+          <tr>
+            <th>Teléfono emergencia:&nbsp;{funcionario.telefono_emergencia}</th>
             <th></th>
           </tr>
         </tbody>
       </table>
+      ) : (
+        <p>No hay datos del funcionario. Realice una búsqueda.</p>
+      )}
+      </div>
     </div>
   //Fin de seccion datos del funcionario//
   //Siguiente seccion de documentos//
