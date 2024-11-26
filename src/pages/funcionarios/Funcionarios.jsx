@@ -4,7 +4,7 @@ import { buscarFuncionarioPorRut, descargarPDF} from "../../apis/indicador";
 import ModalBuscarFuncionario from "../../Modales/ModalBuscarFun";
 
 
-function Funcionarios()  {
+function Funcionarios(){
   const [currentSection, setCurrentSection] = useState("datos");
   const [modalOpen, setModalOpen] = useState(false);
   const [funcionario, setfuncionario] = useState(null);
@@ -16,18 +16,86 @@ function Funcionarios()  {
     setFuncionario(null); 
     setRutBuscado(""); 
   };
- 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formValues, setFormValues] = useState({
+      sueldoBase: "",
+      horasExtras: "",
+      gratificacion: "",
+      bonos: "",
+      afpComision: "",
+      salud: "7", 
+    })
+  
+    const [resultados, setResultados] = useState({
+      sueldoImponible: 0,
+      descuentos: {
+        afp: 0,
+        salud: 0,
+        cesantia: 0,
+      },
+      sueldoLiquido: 0,
+    });
 
-  // const handleBuscarFuncionario = async () => {
-  //   try {
-  //     const data = await buscarFuncionarioPorRut(rut);
-  //     setfuncionario(data);
-  //     setRutBuscado(rut);
-  //   } catch (error) {
-  //     setFuncionario(null);
-  //   }
-  // };
+    const handleInputChange = (e) => {
+      const { name, value } = e.target;
+    
+      // Elimina cualquier carácter que no sea un número
+      const numericValue = value.replace(/\D/g, ""); 
+    
+      if (/^\d*$/.test(numericValue)) { // Solo permite números enteros
+        setFormValues({
+          ...formValues,
+          [name]: numericValue, // Almacena el valor puro
+        });
+      }
+    };
+    const formatCurrency = (number) => {
+      if (!number) return ""; 
+      const roundedNumber = Math.floor(number);
+      return `$${roundedNumber.toLocaleString("es-CL")}`;
+    };
+        
+   
 
+    const calcularLiquidacion = (e) => {
+      e.preventDefault();
+    
+      const sueldoBase = parseFloat(formValues.sueldoBase) || 0;
+      const horasExtras = parseFloat(formValues.horasExtras) || 0;
+      const gratificacion = parseFloat(formValues.gratificacion) || 0;
+      const bonos = parseFloat(formValues.bonos) || 0;
+      const afpComision = parseFloat(formValues.afpComision) || 0;
+      const saludPorcentaje = parseFloat(formValues.salud) || 0;
+    
+      // Calcular el valor de la hora ordinaria
+      const horasMensuales = 180; // Aproximado para jornadas de 45 horas semanales
+      const valorHora = sueldoBase / horasMensuales;
+    
+      // Calcular el valor de las horas extras (50% más)
+      const recargoHoraExtra = 1.5; // 50% adicional
+      const pagoHorasExtras = horasExtras * valorHora * recargoHoraExtra;
+    
+      // Calcular el sueldo imponible
+      const sueldoImponible = sueldoBase + pagoHorasExtras + gratificacion + bonos;
+    
+      // Descuentos legales
+      const afp = sueldoImponible * (0.10 + afpComision / 100); 
+      const salud = sueldoImponible * (saludPorcentaje / 100); 
+      const cesantia = sueldoImponible * 0.006; 
+      const totalDescuentos = afp + salud + cesantia;
+    
+      // Sueldo líquido
+      const sueldoLiquido = sueldoImponible - totalDescuentos;
+    
+      // Guardar resultados
+      setResultados({
+        sueldoImponible,
+        descuentos: { afp, salud, cesantia },
+        sueldoLiquido,
+        pagoHorasExtras, // Para mostrar el desglose de las horas extras si es necesario
+      });
+    };
+    
   const handleBuscarFuncionario = async (rut) => {
     try {
       const data = await buscarFuncionarioPorRut(rut); // Tu método para buscar por RUT
@@ -39,8 +107,6 @@ function Funcionarios()  {
       console.error("No se pudo encontrar al funcionario", error);
     }
   };
-
- 
 
   const handleDescargarPDF = async () => {
     if (!rutBuscado) {
@@ -62,6 +128,8 @@ function Funcionarios()  {
       console.error("Error al descargar el PDF:", error.message);
     }
   };
+
+
   
   return (
     <div className="containerFun">
@@ -219,20 +287,123 @@ function Funcionarios()  {
        {/*******************************SECCION LIQUIDACIONES*****************************************************************************************/}
   
         {currentSection === "Liquidaciones" && (
-          <div>
-            <table border="1" className="encabezados">
-              <thead>
-                <tr>
-                  <th>Mes</th>
-                  <th>Monto Imponible</th>
-                  <th>Total Haberes</th>
-                  <th>Total Descuento</th>
-                  <th>Visualizar</th>
-                  <th>Comprobante de Pago</th>
-                </tr>
-              </thead>
-            </table> 
+           <div className="calculadora-liquidacion">
+           <form onSubmit={calcularLiquidacion} className="formulario-calculo">
+             <div>
+               <label>Sueldo Base:</label>
+               <input
+                 type="text"
+                 name="sueldoBase"
+                 value={formatCurrency(formValues.sueldoBase)}
+                 onChange={handleInputChange}
+                 required
+               />
+             </div>
+             <div>
+               <label>Horas Extras:</label>
+               <input
+                 type="number"
+                 name="horasExtras"
+                 value={formValues.horasExtras}
+                 onChange={handleInputChange}
+               />
+             </div>
+             <div>
+               <label>Gratificación:</label>
+               <input
+                 type="text"
+                 name="gratificacion"
+                 value={formatCurrency(formValues.gratificacion)}
+                 onChange={handleInputChange}
+               />
+             </div>
+             <div>
+               <label>Bonos:</label>
+               <input
+                 type="text"
+                 name="bonos"
+                 value={formatCurrency(formValues.bonos)}
+                 onChange={handleInputChange}
+               />
+             </div>
+             <div>
+               <label>Comisión AFP (%):</label>
+               <input
+                 type="number"
+                 name="afpComision"
+                 value={formValues.afpComision}
+                 onChange={handleInputChange}
+                 required
+               />
+             </div>
+             <div>
+               <label>Salud (%):</label>
+               <select
+                 name="salud"
+                 value={formValues.salud}
+                 onChange={handleInputChange}
+               >
+                 <option value="7">Fonasa (7%)</option>
+                 <option value="10">Isapre (10%)</option>
+               </select>
+             </div>
+             <button type="submit">Calcular</button>
+           </form>
+           
+           {resultados.sueldoImponible > 0 && ( 
+              <div className="resultados-calculo">
+                <h2>Liquidación</h2>
+                <div className="resultado-item">
+                  <h3>Sueldo Imponible</h3>
+                  <p>{formatCurrency(resultados.sueldoImponible)}</p> 
+                </div>
+                <div className="resultado-item">
+                  <h3>Descuentos</h3>
+                  <ul>
+                    <li>AFP: {formatCurrency(resultados.descuentos.afp)}</li>
+                    <li>Salud: {formatCurrency(resultados.descuentos.salud)}</li>
+                    <li>Seguro de Cesantía: {formatCurrency(resultados.descuentos.cesantia)}</li>
+                  </ul>
+                </div>
+                <div className="resultado-item">
+                  <h3>Sueldo Líquido</h3>
+                  <p><strong>{formatCurrency(resultados.sueldoLiquido)}</strong></p>
+                </div>
+                <button className="btn btn-save">Exportar a PDF</button>
+              </div>
+            )}
+
+            
+            <button className="btn-fijo" onClick={() => setIsModalOpen(true)}>
+              Liquidaciones
+            </button>
+            <button className="btn-fijo1">Guardar</button>
+
+              {isModalOpen && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <h2>Liquidaciones del trabajador </h2>
+                    <table border="1" className="encabezados">
+                      <thead>
+                        <tr>
+                          <th>Mes</th>
+                          <th>Monto Imponible</th>
+                          <th>Total Haberes</th>
+                          <th>Total Descuento</th>
+                          <th>Visualizar</th>
+                          <th>Comprobante de Pago</th>
+                        </tr>
+                      </thead>
+                    </table> 
+                    <button className="btn-close" onClick={() => setIsModalOpen(false)}>
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              )}
+            
          </div>
+         
          )}
         
        {/*******************************SECCION LICENCIAS*****************************************************************************************/}
@@ -266,6 +437,8 @@ function Funcionarios()  {
       )}
     </div>
   );
+
+ 
 
 };
 
