@@ -92,3 +92,58 @@ export const buscarFuncionarioPorRut = async (rut) => {
         return formattedData;
     };
     
+
+    const parseLiquidacionData = (data) => {
+      return {
+        rut_funcionario: String(data.rut_funcionario).trim(),
+        nombre_empleado: String(data.nombre_empleado).trim(),
+        obra: String(data.obra).trim(),
+        sueldo_base: Number(data.sueldo_base),
+        gratificacion: Number(data.gratificacion),
+        asignacion_movilizacion: Number(data.asignacion_movilizacion),
+        asignacion_colacion: Number(data.asignacion_colacion),
+        afp: parseFloat(data.afp),
+        salud: parseFloat(data.salud),
+        seguro_cesantia: parseFloat(data.seguro_cesantia),
+        impuesto: Number(data.impuesto),
+        rebaja: Number(data.rebaja),
+        anticipo_sueldo: Number(data.anticipo_sueldo),
+        otros_descuentos: Number(data.otros_descuentos),
+        fecha_liquidacion: String(data.fecha_liquidacion),
+      };
+    };
+    
+    export const createLiquidacion = async (data) => {
+      const parsedData = parseLiquidacionData(data); 
+      try {
+        const response = await fetch(`${BASE_URL}/liquidaciones`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(parsedData),
+        });
+        if (!response.ok) {
+          const errorData = await response.text();  
+          try {
+            const parsedErrorData = JSON.parse(errorData);  
+            throw new Error(parsedErrorData.message || 'Error en la API');
+          } catch (e) {
+            throw new Error('Error en la API: ' + errorData);  
+          }
+        }
+        const contentType = response.headers.get('Content-Type');
+        let result;
+        if (contentType && contentType.includes('application/json')) {
+          result = await response.json();  
+        } else {
+          result = await response.text();  
+        }
+        return result;
+      } catch (error) {
+        console.error('Error en createLiquidacion:', error);
+        throw error;
+      }
+    };
+    

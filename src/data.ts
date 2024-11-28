@@ -75,8 +75,8 @@ export const menu = [
         },
         {
           id: 5,
-          title: "Asistencia",
-          url: "/posts",
+          title: "Liquidaciones",
+          url: "/Liquidaciones",
           icon: "post2.svg",
         },
         {

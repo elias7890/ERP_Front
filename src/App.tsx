@@ -10,6 +10,7 @@ import "./styles/global.scss";
 import Empresas from "./pages/empresas/Empresas";
 import Funcionarios from "./pages/funcionarios/Funcionarios";
 import Registro from "./pages/registro/Registro";
+import Liquidaciones from "./pages/liquidaciones/Liquidaciones";
 
 
 
@@ -68,6 +69,10 @@ function App() {
         {
           path:"/Registro",
           element:<Registro/>,
+        },
+        {
+          path:"/Liquidaciones",
+          element:<Liquidaciones/>,
         },
         
       ]   

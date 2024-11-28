@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./Funcionarios.scss";
 import { buscarFuncionarioPorRut, descargarPDF} from "../../apis/indicador";
 import ModalBuscarFuncionario from "../../Modales/ModalBuscarFun";
+import ModalBuscarModificar from "../../Modales/ModalBuscarFun";
 
 
 function Funcionarios(){
@@ -13,7 +14,7 @@ function Funcionarios(){
   const handleAbrirModal = () => setModalOpen(true);
   const handleCerrarModal = () => {
     setModalOpen(false);
-    setFuncionario(null); 
+    //setFuncionario(null); 
     setRutBuscado(""); 
   };
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -96,17 +97,15 @@ function Funcionarios(){
       });
     };
     
-  const handleBuscarFuncionario = async (rut) => {
-    try {
-      const data = await buscarFuncionarioPorRut(rut); // Tu método para buscar por RUT
-      setfuncionario(data);
-      setRutBuscado(rut);
-      setModalOpen(true); // Abre el modal una vez que los datos se han cargado
-    } catch (error) {
-      setFuncionario(null);
-      console.error("No se pudo encontrar al funcionario", error);
-    }
-  };
+    const handleBuscarFuncionario = async () => {
+      try {
+        const data = await buscarFuncionarioPorRut(rut);
+        setfuncionario(data);
+        setRutBuscado(rut);
+      } catch (error) {
+        setFuncionario(null);
+      }
+    };
 
   const handleDescargarPDF = async () => {
     if (!rutBuscado) {
@@ -197,9 +196,9 @@ function Funcionarios(){
                   isOpen={modalOpen}
                   onClose={handleCerrarModal}
                   funcionario={funcionario}
-                  rut={rutBuscado}
-                  onGuardar={(datosActualizados) => {
-                    console.log("Datos guardados:", datosActualizados);
+                  rut={rut}
+                  onGuardar={(handleGuardar) => {
+                    console.log("Datos guardados:", handleGuardar);
                     handleCerrarModal();
                   }}
                 />
