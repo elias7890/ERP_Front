@@ -23,6 +23,16 @@ export const buscarFuncionarioPorRut = async (rut) => {
     }
   };
 
+  export const buscarLiquidacionesPorRut = async (rut) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/liquidaciones/${rut}`);
+      return response.data; 
+    } catch (error) {
+      console.error("Error al buscar liquidaciones:", error.message);
+      throw error;
+    }
+  };
+
 
   export const descargarPDF = async (rut) => {
     try {
@@ -31,21 +41,35 @@ export const buscarFuncionarioPorRut = async (rut) => {
         headers: { 
         },
       });
-  
       if (!response.ok) {
         throw new Error(`Error ${response.status}: PDF no encontrado`);
       }
-  
-      
       const pdfBlob = await response.blob(); 
       return pdfBlob;
     } catch (error) {
       console.error("Error al descargar el PDF:", error.message);
       throw error;
     }
-
-    
   };
+
+  export const descargarLiquidacionPDF = async (rut, fecha_liquidacion) => {
+    try {
+      const response = await fetch(`${BASE_URL}/liquidaciones/pdf/${rut}/${fecha_liquidacion}`, {
+        method: "GET",
+        headers:{ 
+        },
+      });
+      if (!response.ok){
+        throw new Error(`Error ${response.status}: PDF no encontrado`);
+      }
+      const pdfBlob = await response.blob();
+      return pdfBlob; 
+    } catch (error) {
+      console.error("error al descargar la liquidacion:", error.message);
+      throw error;
+      
+    }
+  }
 
 
 
@@ -146,4 +170,6 @@ export const buscarFuncionarioPorRut = async (rut) => {
         throw error;
       }
     };
+
+
     

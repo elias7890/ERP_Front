@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "./Funcionarios.scss";
-import { buscarFuncionarioPorRut, descargarPDF} from "../../apis/indicador";
+import { buscarFuncionarioPorRut, descargarPDF, buscarLiquidacionesPorRut, descargarLiquidacionPDF} from "../../apis/indicador";
 import ModalBuscarFuncionario from "../../Modales/ModalBuscarFun";
 import ModalBuscarModificar from "../../Modales/ModalBuscarFun";
 
@@ -11,101 +11,46 @@ function Funcionarios(){
   const [funcionario, setfuncionario] = useState(null);
   const [rut, setRut] = useState("");
   const [rutBuscado, setRutBuscado] = useState("");
+  const [data, setData] = useState([]);
+  const [error, setError] = useState(null);
   const handleAbrirModal = () => setModalOpen(true);
   const handleCerrarModal = () => {
     setModalOpen(false);
     //setFuncionario(null); 
     setRutBuscado(""); 
-  };
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formValues, setFormValues] = useState({
-      sueldoBase: "",
-      horasExtras: "",
-      gratificacion: "",
-      bonos: "",
-      afpComision: "",
-      salud: "7", 
-    })
+  }; 
+
+  const handleBuscarFuncionario = async () => {
+    try {
+      // Buscar funcionario
+      const funcionarioData = await buscarFuncionarioPorRut(rut);
+      setfuncionario(funcionarioData); 
+      setRutBuscado(rut);
   
-    const [resultados, setResultados] = useState({
-      sueldoImponible: 0,
-      descuentos: {
-        afp: 0,
-        salud: 0,
-        cesantia: 0,
-      },
-      sueldoLiquido: 0,
-    });
-
-    const handleInputChange = (e) => {
-      const { name, value } = e.target;
+      // Buscar liquidaciones
+      const liquidacionesData = await buscarLiquidacionesPorRut(rut);
+      setData(liquidacionesData); 
+      setError(null);
+  
+      console.log("Funcionario y liquidaciones cargados:", { funcionarioData, liquidacionesData });
+    } catch (error) {
+      console.error("Error en la búsqueda:", error.message);
+      setfuncionario(data); 
+      setData([]); 
+      setError("No se pudieron cargar los datos.");
+    }
+  };
+  
     
-      // Elimina cualquier carácter que no sea un número
-      const numericValue = value.replace(/\D/g, ""); 
-    
-      if (/^\d*$/.test(numericValue)) { // Solo permite números enteros
-        setFormValues({
-          ...formValues,
-          [name]: numericValue, // Almacena el valor puro
-        });
-      }
-    };
-    const formatCurrency = (number) => {
-      if (!number) return ""; 
-      const roundedNumber = Math.floor(number);
-      return `$${roundedNumber.toLocaleString("es-CL")}`;
-    };
-        
-   
-
-    const calcularLiquidacion = (e) => {
-      e.preventDefault();
-    
-      const sueldoBase = parseFloat(formValues.sueldoBase) || 0;
-      const horasExtras = parseFloat(formValues.horasExtras) || 0;
-      const gratificacion = parseFloat(formValues.gratificacion) || 0;
-      const bonos = parseFloat(formValues.bonos) || 0;
-      const afpComision = parseFloat(formValues.afpComision) || 0;
-      const saludPorcentaje = parseFloat(formValues.salud) || 0;
-    
-      // Calcular el valor de la hora ordinaria
-      const horasMensuales = 180; // Aproximado para jornadas de 45 horas semanales
-      const valorHora = sueldoBase / horasMensuales;
-    
-      // Calcular el valor de las horas extras (50% más)
-      const recargoHoraExtra = 1.5; // 50% adicional
-      const pagoHorasExtras = horasExtras * valorHora * recargoHoraExtra;
-    
-      // Calcular el sueldo imponible
-      const sueldoImponible = sueldoBase + pagoHorasExtras + gratificacion + bonos;
-    
-      // Descuentos legales
-      const afp = sueldoImponible * (0.10 + afpComision / 100); 
-      const salud = sueldoImponible * (saludPorcentaje / 100); 
-      const cesantia = sueldoImponible * 0.006; 
-      const totalDescuentos = afp + salud + cesantia;
-    
-      // Sueldo líquido
-      const sueldoLiquido = sueldoImponible - totalDescuentos;
-    
-      // Guardar resultados
-      setResultados({
-        sueldoImponible,
-        descuentos: { afp, salud, cesantia },
-        sueldoLiquido,
-        pagoHorasExtras, // Para mostrar el desglose de las horas extras si es necesario
-      });
-    };
-    
-    const handleBuscarFuncionario = async () => {
-      try {
-        const data = await buscarFuncionarioPorRut(rut);
-        setfuncionario(data);
-        setRutBuscado(rut);
-      } catch (error) {
-        setFuncionario(null);
-      }
-    };
+    // const handleBuscarFuncionario = async () => {
+    //   try {
+    //     const data = await buscarFuncionarioPorRut(rut);
+    //     setfuncionario(data);
+    //     setRutBuscado(rut);
+    //   } catch (error) {
+    //     setFuncionario(null);
+    //   }
+    // };
 
   const handleDescargarPDF = async () => {
     if (!rutBuscado) {
@@ -127,6 +72,35 @@ function Funcionarios(){
       console.error("Error al descargar el PDF:", error.message);
     }
   };
+
+  const handleDescargarLiquidacion = async (fecha_liquidacion) => {
+    if (!rutBuscado) {
+      console.error("No se ha realizado la búsqueda");
+      return;
+    }
+  
+    try {
+      const pdfBlob = await descargarLiquidacionPDF(rutBuscado, fecha_liquidacion);
+      downloadLiquidacionPDF(pdfBlob, `Liquidacion_${rutBuscado}_${fecha_liquidacion}.pdf`);
+      console.log("PDF de la liquidación descargado exitosamente.");
+    } catch (error) {
+      console.error("Error al descargar el PDF de la liquidación:", error.message);
+    }
+  };
+
+  const downloadLiquidacionPDF = (pdfBlob, Liquidacion) => {
+    const url = window.URL.createObjectURL(pdfBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = Liquidacion;  // Nombre del archivo PDF
+    document.body.appendChild(a);
+    a.click();
+    a.remove();  // Elimina el enlace después de la descarga
+  };
+
+
+
+  
 
 
   
@@ -284,126 +258,48 @@ function Funcionarios(){
       )}
 
        {/*******************************SECCION LIQUIDACIONES*****************************************************************************************/}
-  
+      <section>
         {currentSection === "Liquidaciones" && (
-           <div className="calculadora-liquidacion">
-           <form onSubmit={calcularLiquidacion} className="formulario-calculo">
-             <div>
-               <label>Sueldo Base:</label>
-               <input
-                 type="text"
-                 name="sueldoBase"
-                 value={formatCurrency(formValues.sueldoBase)}
-                 onChange={handleInputChange}
-                 required
-               />
-             </div>
-             <div>
-               <label>Horas Extras:</label>
-               <input
-                 type="number"
-                 name="horasExtras"
-                 value={formValues.horasExtras}
-                 onChange={handleInputChange}
-               />
-             </div>
-             <div>
-               <label>Gratificación:</label>
-               <input
-                 type="text"
-                 name="gratificacion"
-                 value={formatCurrency(formValues.gratificacion)}
-                 onChange={handleInputChange}
-               />
-             </div>
-             <div>
-               <label>Bonos:</label>
-               <input
-                 type="text"
-                 name="bonos"
-                 value={formatCurrency(formValues.bonos)}
-                 onChange={handleInputChange}
-               />
-             </div>
-             <div>
-               <label>Comisión AFP (%):</label>
-               <input
-                 type="number"
-                 name="afpComision"
-                 value={formValues.afpComision}
-                 onChange={handleInputChange}
-                 required
-               />
-             </div>
-             <div>
-               <label>Salud (%):</label>
-               <select
-                 name="salud"
-                 value={formValues.salud}
-                 onChange={handleInputChange}
-               >
-                 <option value="7">Fonasa (7%)</option>
-                 <option value="10">Isapre (10%)</option>
-               </select>
-             </div>
-             <button type="submit">Calcular</button>
-           </form>
-           
-           {resultados.sueldoImponible > 0 && ( 
-              <div className="resultados-calculo">
-                <h2>Liquidación</h2>
-                <div className="resultado-item">
-                  <h3>Sueldo Imponible</h3>
-                  <p>{formatCurrency(resultados.sueldoImponible)}</p> 
-                </div>
-                <div className="resultado-item">
-                  <h3>Descuentos</h3>
-                  <ul>
-                    <li>AFP: {formatCurrency(resultados.descuentos.afp)}</li>
-                    <li>Salud: {formatCurrency(resultados.descuentos.salud)}</li>
-                    <li>Seguro de Cesantía: {formatCurrency(resultados.descuentos.cesantia)}</li>
-                  </ul>
-                </div>
-                <div className="resultado-item">
-                  <h3>Sueldo Líquido</h3>
-                  <p><strong>{formatCurrency(resultados.sueldoLiquido)}</strong></p>
-                </div>
-                <button className="btn btn-save">Exportar a PDF</button>
-              </div>
+          <div>
+            {error && <p style={{ color: "red" }}>{error}</p>}
+
+            {data.length > 0 ? (
+              <table className="table-layout">
+                <thead>
+                  <tr>
+                    <th>Fecha de Liquidación</th>
+                    <th>Base Imponible</th>
+                    <th>Total Haberes</th>
+                    <th>Total Descuentos</th>
+                    <th>Acciones</th> {/* Nueva columna para el botón de descarga */}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.fecha_liquidacion}</td>
+                      <td>${parseFloat(item.total_base_imponible).toLocaleString()}</td>
+                      <td>${parseFloat(item.total_haberes).toLocaleString()}</td>
+                      <td>${parseFloat(item.total_descuentos).toLocaleString()}</td>
+                      <td>
+                        {/* Pasa la fecha de la liquidación al hacer clic */}
+                        <button
+                          className="btn btn-save"
+                          onClick={() => handleDescargarLiquidacion(item.fecha_liquidacion)}
+                        >
+                          Descargar Liquidación
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              !error && <p style={{ color: "black" }}>No hay liquidaciones disponibles para este RUT.</p>
             )}
-
-            
-            <button className="btn-fijo" onClick={() => setIsModalOpen(true)}>
-              Liquidaciones
-            </button>
-            <button className="btn-fijo1">Guardar</button>
-
-              {isModalOpen && (
-                <div className="modal-overlay">
-                  <div className="modal-content">
-                    <h2>Liquidaciones del trabajador </h2>
-                    <table border="1" className="encabezados">
-                      <thead>
-                        <tr>
-                          <th>Mes</th>
-                          <th>Monto Imponible</th>
-                          <th>Total Haberes</th>
-                          <th>Total Descuento</th>
-                          <th>Visualizar</th>
-                          <th>Comprobante de Pago</th>
-                        </tr>
-                      </thead>
-                    </table> 
-                    <button className="btn-close" onClick={() => setIsModalOpen(false)}>
-                      Cerrar
-                    </button>
-                  </div>
-                </div>
-              )}
-            
-         </div>
-         
-         )}
+          </div>
+        )}
+      </section>
         
        {/*******************************SECCION LICENCIAS*****************************************************************************************/}
 
