@@ -10,7 +10,7 @@ const ModalBuscarModificar = ({
 }) => {
   const [datos, setDatos] = useState({
     
-    nombre_funcionario: "",
+    nombre_completo: "",
     email: "",
     fecha_nacimiento:"",
     estado_civil: "",
@@ -52,7 +52,7 @@ const ModalBuscarModificar = ({
     if (funcionario) {
       setDatos({
         
-        nombre_funcionario: funcionario.nombre_completo,
+        nombre_completo: funcionario.nombre_completo,
         email: funcionario.email,
         fecha_nacimiento: funcionario.fecha_nacimiento,
         estado_civil: funcionario.estado_civil,
@@ -107,15 +107,39 @@ const ModalBuscarModificar = ({
   
   
 
+  // const handleGuardar = async () => {
+  //   onGuardar(datos); 
+  //   try {
+  //     const response = await fetch(`http://127.0.0.1:8000/api/funcionarios/${rut}`, {
+  //       method: "PUT",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(datos),
+  //     });
+  
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       console.log("Funcionario actualizado:", result.funcionario);
+  //     } else {
+  //       console.error("Error al actualizar el funcionario");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error de red:", error);
+  //   }
+  // };
+
   const handleGuardar = async () => {
-    onGuardar(datos); 
+    // Validar y transformar datos antes de enviarlos
+    const datosValidados = validarDatos(datos);
+  
     try {
       const response = await fetch(`http://127.0.0.1:8000/api/funcionarios/${rut}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(datos),
+        body: JSON.stringify(datosValidados),
       });
   
       if (response.ok) {
@@ -128,6 +152,59 @@ const ModalBuscarModificar = ({
       console.error("Error de red:", error);
     }
   };
+  
+  // Función para validar y transformar datos
+  const validarDatos = (datos) => {
+    const datosValidados = { ...datos };
+  
+    // Formatear fechas (de DD/MM/YYYY a YYYY-MM-DD)
+    if (datos.fecha_nacimiento) {
+      datosValidados.fecha_nacimiento = formatearFecha(datos.fecha_nacimiento);
+    }
+    if (datos.fecha_ingreso) {
+      datosValidados.fecha_ingreso = formatearFecha(datos.fecha_ingreso);
+    }
+    if (datos.cursoos10) {
+      datosValidados.cursoos10 = formatearFecha(datos.cursoos10);
+    }
+  
+    // Limpiar caracteres inválidos en texto
+    for (let key in datosValidados) {
+      if (typeof datosValidados[key] === "string") {
+        datosValidados[key] = datosValidados[key]
+          .replace(/[^\w\s.@-]/gi, "") // Quita caracteres no permitidos
+          .trim(); // Quita espacios adicionales
+      }
+    }
+  
+    // Convertir sueldo a número
+    if (datosValidados.sueldo) {
+      datosValidados.sueldo = parseFloat(
+        datosValidados.sueldo.toString().replace(/[^\d.]/g, "") // Quita símbolos como $
+      );
+    }
+  
+    // Omitir campos vacíos o no válidos
+    Object.keys(datosValidados).forEach((key) => {
+      if (datosValidados[key] === null || datosValidados[key] === "" || datosValidados[key] === undefined) {
+        delete datosValidados[key];
+      }
+    });
+  
+    return datosValidados;
+  };
+  
+  // Función auxiliar para formatear fechas
+  const formatearFecha = (fecha) => {
+    // Asume formato DD/MM/YYYY; convertir a YYYY-MM-DD
+    const partes = fecha.split("/");
+    if (partes.length === 3) {
+      const [dia, mes, anio] = partes;
+      return `${anio}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+    }
+    return fecha; // Retorna la fecha sin cambios si el formato no coincide
+  };
+  
 
   
 
@@ -157,7 +234,7 @@ const ModalBuscarModificar = ({
                   <label>Nombre:</label>
                   <input
                     type="text"
-                    name="nombre_funcionario"
+                    name="nombre_completo"
                     value={datos.nombre_funcionario}
                     onChange={handleChange}
                   />

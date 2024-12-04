@@ -11,6 +11,7 @@ import Empresas from "./pages/empresas/Empresas";
 import Funcionarios from "./pages/funcionarios/Funcionarios";
 import Registro from "./pages/registro/Registro";
 import Liquidaciones from "./pages/liquidaciones/Liquidaciones";
+import IndicadoresFinan from "./pages/indicadoresF/IndicadoresFinan";
 
 
 
@@ -73,6 +74,10 @@ function App() {
         {
           path:"/Liquidaciones",
           element:<Liquidaciones/>,
+        },
+        {
+          path:"/Indicadores",
+          element:<IndicadoresFinan/>,
         },
         
       ]   
