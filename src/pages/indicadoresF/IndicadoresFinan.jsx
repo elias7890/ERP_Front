@@ -9,12 +9,24 @@ import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextF
 import { Add } from "@mui/icons-material";
 
 
+
 function IndicadoresFinan() {
   const [afpData, setAfpData] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [message, setMessage] = useState('');
   const [currentSection, setCurrentSection] = useState("AFP");
+  const [indicatorsData, setIndicatorsData] = useState([]);
+  const [error, setError] = useState(null);
+  const [loadingIndicators, setLoadingIndicators] = useState(true);
+  const [ufValue, setUfValue] = useState(null);
+  const [rentasData, setRentasData] = useState([
+    { Concepto: "Para afiliados a una AFP", UF: "84.3 UF", monto: "" },
+    { Concepto: "Para afiliados al INP", UF: "60 UF", monto: "" },
+    { Concepto: "Para afiliados al INP", UF: "126.6 UF", monto: "" },
+  ]);
 
+
+  //trae las afp una de cada una y la fecha más actualizada de esta
   useEffect(() => {
     axios.get("http://127.0.0.1:8000/api/afps")
       .then((response) => {
@@ -26,6 +38,64 @@ function IndicadoresFinan() {
         console.error("Hubo un error al cargar los datos:", error);
       });
   }, []);
+
+  
+
+  //trae los indicadores uf,utm y ivp
+   useEffect(() => {
+     axios.get("https://mindicador.cl/api")
+       .then((response) => {
+         const { uf, utm, ivp } = response.data;
+         setUfValue(uf.valor);
+         const date = new Date();
+         const month = date.toLocaleString('default', { month: 'long' }); 
+         const year = date.getFullYear();
+
+         const formattedData = [
+          {
+             mes: `${month} ${year}`,
+             uf: uf.valor,
+             utm: utm.valor,
+             uta: ivp.valor, // Puedes cambiar IVP por UTA si tienes otra fuente
+           },
+         ];
+         setIndicatorsData(formattedData);
+         setLoadingIndicators(false);
+       })
+       .catch((error) => {
+         console.error("Error al obtener los indicadores:", error);
+         setError("Hubo un error al obtener los indicadores.");
+         setLoadingIndicators(false);
+      });
+   }, []);
+
+   useEffect(() => {
+    // Obtener el valor de la UF desde la API para rentas imponibles
+    axios.get("https://mindicador.cl/api")
+      .then((response) => {
+        const ufValue = response.data.uf.valor; // Capturar el valor de la UF
+        setUfValue(ufValue);
+
+        // Actualizar el arreglo rentasData con los valores calculados
+        const updatedRentasData = rentasData.map((item) => {
+          const ufNumber = parseFloat(item.UF); // Extraer el número de UF
+          const montoCalculado = ufNumber * ufValue; // Calcular el monto
+          const montoFormateado = new Intl.NumberFormat("es-CL", {
+            style: "currency",
+            currency: "CLP",
+          }).format(montoCalculado); // Formatear como moneda CLP
+
+          return { ...item, monto: montoFormateado }; // Actualizar el monto formateado
+        });
+
+        setRentasData(updatedRentasData); // Actualizar el estado con los datos nuevos
+      })
+      .catch((error) => {
+        console.error("Error al obtener el valor de la UF:", error);
+      });
+  }, []);
+
+  
   
   const addAfpRow = () => {
     setAfpData([...afpData, newAfp]);
@@ -44,7 +114,14 @@ function IndicadoresFinan() {
   while (filledAfpData.length < 7) {
     filledAfpData.push({ afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" });
   }
-
+ 
+  //Rentas minimas imponibles 
+  const rentasMinimasData = [
+    { Concepto: "Trab. Dependientes e Independientes", Monto: "$500.000" },
+    { Concepto: "Menores de 18 y Mayores de 65", Monto: "$372.989" },
+    { Concepto: "Trabajadores de Casa Particular", Monto: "$500.000" },
+    { Concepto: "Para fines no remuneracionales", Monto: "$322.295" },
+  ];
 
   // Actualizar los valores de una fila
   const handleInputChange = (e, index, field) => {
@@ -214,63 +291,114 @@ function IndicadoresFinan() {
       {/*******************************SECCION INDICADORES*****************************************************************************************/}
 
         {currentSection === "Indicadores" && (
-          <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
-            <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
-              Indicadores Mensuales (UF, UTM, UTA)
-            </Typography>
-            <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
-              <Table sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
-                      Mes
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
-                      UF
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
-                      UTM
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
-                      UTA
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {indicatorsData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell sx={{ textAlign: "center" }}>{row.mes}</TableCell>
-                      <TableCell sx={{ textAlign: "center" }}>{row.uf}</TableCell>
-                      <TableCell sx={{ textAlign: "center" }}>{row.utm}</TableCell>
-                      <TableCell sx={{ textAlign: "center" }}>{row.uta}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
+           <Box sx={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px' }}>
+           <Typography variant="h6" sx={{ marginBottom: '15px', fontWeight: 'bold', color: '#333' }}>
+             Indicadores Mensuales (UF, UTM, UTA)
+           </Typography>
+           <TableContainer sx={{ boxShadow: 3, borderRadius: '8px', overflow: 'hidden' }}>
+             <Table sx={{ minWidth: 650 }}>
+               <TableHead>
+                 <TableRow>
+                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                     Mes
+                   </TableCell>
+                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                     UF
+                   </TableCell>
+                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                     UTM
+                   </TableCell>
+                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                     UTA
+                   </TableCell>
+                 </TableRow>
+               </TableHead>
+               <TableBody>
+                 {indicatorsData.map((row, index) => (
+                   <TableRow key={index}>
+                     <TableCell sx={{ textAlign: 'center' }}>{row.mes}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>{row.uf}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>{row.utm}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>{row.uta}</TableCell>
+                   </TableRow>
+                 ))}
+               </TableBody>
+             </Table>
+           </TableContainer>
+         </Box>
         )}
       {/*******************************SECCION RENTA TOPE IMPONIBLE*****************************************************************************************/}
 
       {currentSection === "Renta_Topes_Impon" && (
-        <div>
-          <h2>Rentas Topes Imponible</h2>
-          <p>Aquí puedes gestionar las rentas topes imponibles.</p>
-        </div>
+        <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
+        <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
+          Rentas Mínimas Imponibles (RMI)
+        </Typography>
+  
+        <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
+                  Concepto
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
+                  UF
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
+                  Monto
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rentasData.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell sx={{ textAlign: "center" }}>{item.Concepto}</TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>{item.UF}</TableCell>
+                  <TableCell sx={{ textAlign: "center" }}> {item.monto}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+      )}
+
+      {/*******************************SECCION RENTA MINIMA IMPONIBLE*****************************************************************************************/}
+
+      {currentSection === "Rentas_Min_Impon." && (
+        <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
+        <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
+          Rentas Mínimas Imponibles
+        </Typography>
+        <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
+                  Concepto
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
+                  Monto
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rentasMinimasData.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell sx={{ textAlign: "center" }}>{row.Concepto}</TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>{row.Monto}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
       )}
 
       {/*******************************SECCION ASIGNACION FAMILIAR*****************************************************************************************/}
 
       {currentSection === "Asignacion_Familiar" && (
-        <div>
-          <h2>Asignación Familiar</h2>
-          <p>Aquí puedes gestionar la asignación familiar del funcionario.</p>
-        </div>
-      )}
-
-      {/*******************************SECCION APV*****************************************************************************************/}
-
-      {currentSection === "APV" && (
         <div>
           <h2>APV</h2>
           <p>Aquí puedes consultar el APV del funcionario.</p>

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Liquidaciones.scss';
+import axios from "axios";
 import { createLiquidacion } from '../../apis/indicador';
 
 const Liquidaciones = () => {
@@ -21,15 +22,34 @@ const Liquidaciones = () => {
     otros_descuentos: '',
   });
 
-  const afps = [
-    { id: '1', name: 'AFP Modelo', descuento: 10.58 },
-    { id: '2', name: 'AFP Provida', descuento: 11.45},
-    { id: '3', name: 'AFP Habitat', descuento: 11.27}, 
-    { id: '4', name: 'AFP Plan Vital', descuento: 11.16 },
-    { id: '5', name: 'AFP Cuprum', descuento: 11.44}
-  ];
+  const [afps, setAfps] = useState([]);
 
   
+
+  const handleSelectAfpChange = (event) => {
+    const {  value } = event.target;
+   
+    setFormData((prevState) => ({
+      ...prevState,
+      afp: value,
+     
+    }));
+  };
+
+  useEffect(() => {
+    axios.get("http://127.0.0.1:8000/api/afps")
+      .then((response) => {
+        console.log("Datos obtenidos:", response.data.data);
+        const uniqueAfps = [
+          ...new Map(response.data.data.map((afp) => [afp.afp, afp])).values()
+        ];
+        setAfps(uniqueAfps); 
+      })
+      .catch((error) => {
+        console.error("Error al obtener las AFPs:", error);
+      });
+  }, []);
+
   const salud = [
     {id: '1', name: 'Fonasa', descuento: 7},
     {id: '2', name: 'Banmédica', descuento: 7},
@@ -67,32 +87,32 @@ const Liquidaciones = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    const numericValue = value.replace(/\D/g, ""); 
+    const numericValue = value.replace(/\D/g, "");
     setFormData({
       ...formData,
       [name]: numericValue,
     });
   };
-  
+
   const formatCurrency = (number) => {
     if (!number) return "";
-    const roundedNumber = Math.floor(number);  
-    return `$${roundedNumber.toLocaleString("es-CL")}`; 
+    const roundedNumber = Math.floor(number);
+    return `$${roundedNumber.toLocaleString("es-CL")}`;
   };
-  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    console.log("Datos del formularioaaaa:", formData);
     try {
       const result = await createLiquidacion(formData);
-      console.log('Resultado recibido del backend:', result);   
+      console.log('Resultado recibido del backend:', result);
     } catch (error) {
       console.error('Error al enviar los datos:', error);
     }
   };
 
-  
+
   return (
     <div className="form-wrapperLI">
       <div className="form-containerLi">
@@ -165,18 +185,18 @@ const Liquidaciones = () => {
                 required
               />
             </div>
-            <div className="form-groupLI">
+             <div className="form-groupLI">
               <label className="form-labelLI">Gratificación</label>
               <input
                 className="form-inputLI"
                 type="text"
                 name="gratificacion"
-                value={formatCurrency(formData.gratificacion)} 
+                value={formatCurrency(formData.gratificacion)}
                 onChange={handleInputChange}
                 placeholder="Ingrese gratificación"
                 required
               />
-            </div>
+            </div> 
           </div>
 
           {/* Movilización y Colación */}
@@ -211,11 +231,19 @@ const Liquidaciones = () => {
           <div className="form-rowLI">
             <div className="form-groupLI">
               <label className="form-labelLI">AFP</label>
-              <select name="afp" value={formData.afp} onChange={handleAfpChange} required>
+              {/* <select name="afp" value={formData.afp} onChange={handleSelectAfpChange} required>
                 <option value="">Seleccione una AFP</option>
                 {afps.map((afp) => (
-                  <option key={afp.id} value={afp.descuento}>
-                    {afp.name} ({afp.descuento}%)
+                  <option key={afp.afp} value={afp.tasa_afp}>
+                   {afp.afp} ({afp.tasa_afp}%)
+                  </option>
+                ))}
+              </select> */}
+              <select name="afp" value={formData.afp} onChange={handleSelectAfpChange} required>
+                <option value="">Seleccione una AFP</option>
+                {afps.map((afp) => (
+                  <option key={afp.afp} value={afp.tasa_afp}>
+                    {afp.afp} ({afp.tasa_afp}%)  
                   </option>
                 ))}
               </select>
