@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextF
   DialogContent,       
   DialogTitle,         
   } from "@mui/material";
-import { Add, Delete } from "@mui/icons-material";
+import { Add } from "@mui/icons-material";
 
 
 function IndicadoresFinan() {
@@ -63,36 +63,29 @@ function IndicadoresFinan() {
       return;
     }
   
-    // Enviar la solicitud POST al backend para crear la nueva AFP
     axios.post("http://127.0.0.1:8000/api/afps", afpToCreate)
       .then((response) => {
         console.log("Nueva AFP creada correctamente:", response.data);
         setMessage('AFP creada correctamente.');
   
-        // Limpiar el formulario
         setNewAfp({ afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" });
   
-        // Limpiar el mensaje después de 5 segundos
         setTimeout(() => setMessage(''), 5000);
   
-        // Volver a obtener los datos actualizados desde el backend
         axios.get("http://127.0.0.1:8000/api/afps")
           .then((response) => {
-            // Actualizar afpData con los datos más recientes
             setAfpData(response.data.data);
           })
           .catch((error) => {
             console.error("Error al obtener los datos actualizados:", error);
           });
-  
-        // Cerrar el modal
+
         setOpenModal(false);
       })
       .catch((error) => {
         console.error("Error al crear la nueva AFP:", error);
         setMessage('Hubo un error al crear la AFP.');
-  
-        // Limpiar el mensaje después de 2 segundos
+
         setTimeout(() => setMessage(''), 2000);
       });
   };
@@ -188,7 +181,7 @@ function IndicadoresFinan() {
         <Dialog open={openModal} onClose={() => setOpenModal(false)}>
           <DialogTitle>Agregar Nueva AFP</DialogTitle>
           <DialogContent>
-            {["afp", "tasa_afp", "sis", "tasa_afp_ind"].map((field, i) => (
+            {["Nombre AFP", "Tasa AFP", "Sis", "Tasa AFP Independiente"].map((field, i) => (
               <TextField
                 key={i}
                 label={field.toUpperCase()}
