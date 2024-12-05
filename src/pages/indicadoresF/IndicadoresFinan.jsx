@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./IndicadoresFinan.scss";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Button, IconButton, Typography, Box, Dialog,             // Importación del Dialog
+import { Table, TableBody, TableCell, Modal, TableContainer, TableHead, TableRow, TextField, Button, IconButton, Typography, Box, Dialog, Grid,         
   DialogActions,       
   DialogContent,       
   DialogTitle,         
   } from "@mui/material";
 import { Add } from "@mui/icons-material";
+import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual } from "../../apis/indicador";
 
 
 
@@ -15,15 +16,111 @@ function IndicadoresFinan() {
   const [openModal, setOpenModal] = useState(false);
   const [message, setMessage] = useState('');
   const [currentSection, setCurrentSection] = useState("AFP");
-  const [indicatorsData, setIndicatorsData] = useState([]);
-  const [error, setError] = useState(null);
-  const [loadingIndicators, setLoadingIndicators] = useState(true);
-  const [ufValue, setUfValue] = useState(null);
+  const [indicadores, setIndicadores] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [mes, setMes] = useState('');
+  const [indicatorsUF, setIndicatorsUF] = useState([]);
+  
+  const [open, setOpen] = useState(false);
   const [rentasData, setRentasData] = useState([
     { Concepto: "Para afiliados a una AFP", UF: "84.3 UF", monto: "" },
     { Concepto: "Para afiliados al INP", UF: "60 UF", monto: "" },
     { Concepto: "Para afiliados al INP", UF: "126.6 UF", monto: "" },
   ]);
+
+  const [formData, setFormData] = useState({
+    mes: '',
+    uf: '',
+    utm: '',
+    uta: ''
+  });
+
+  useEffect(() => {
+    
+    const mesActual = obtenerMesActual();
+    setMes(mesActual);  
+    const formatoCLP = (valor) => {
+      return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP',
+        minimumFractionDigits: 0,  
+        maximumFractionDigits: 0   
+      }).format(valor);
+    };
+
+    const formatoUF = (valor) => {
+      return new Intl.NumberFormat('es-CL', {
+        style: 'decimal',
+        minimumFractionDigits: 2,  
+        maximumFractionDigits: 2   
+      }).format(valor);
+    };
+    const formatoMonto = (valor) => {
+      return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP',    // Asegura que sea un formato numérico
+        minimumFractionDigits: 0,  // No muestra decimales
+        maximumFractionDigits: 0,  // No muestra decimales
+      }).format(valor);
+    };
+
+    const fetchIndicadores = async () => {
+      try {
+        const data = await obtenerIndicadoresPorMes(mesActual);  
+        const indicadoresConFormato = data.map(indicador => ({
+          ...indicador,
+          uf: formatoUF(indicador.uf),  
+          utm: formatoCLP(indicador.utm),  
+          uta: formatoCLP(indicador.uta),  
+        }));
+
+        setIndicadores(indicadoresConFormato);  
+        const ufValor = parseFloat( indicadoresConFormato[0]?.uf.replace(' UF', '').replace(/\./g, '').replace(',', '.'));  // Extraemos el valor de la UF
+        if (!isNaN(ufValor)) {
+          const rentasActualizadas = rentasData.map(renta => ({
+            ...renta,
+            monto: formatoMonto(parseFloat(renta.UF.replace(' UF', '')) * ufValor),  // Calculamos el monto
+          }));
+          setRentasData(rentasActualizadas);  // Actualizamos el estado de rentasData
+        }
+      } catch (error) {
+        console.error('Error al obtener los indicadores:', error);
+      } finally {
+        setCargando(false);  
+      }
+    };
+    fetchIndicadores();  
+  }, []);
+
+  
+  
+
+  const handleOpen = (modalType) => {
+    setOpen({ type: modalType, status: true });
+  };
+
+  const handleClose = () => {
+    setOpen({ type: '', status: false });
+  };
+
+ 
+  const handleChangeIndicadores = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault(); 
+    try {
+      const result = await actualizarIndicadores(formData); 
+      console.log('Datos actualizados:', result);
+      setIndicatorsUF([...indicatorsUF, formData]);
+      handleClose();
+      setFormData({ mes: '', uf: '', utm: '', uta: '' });
+    } catch (error) {
+      console.error('Error al guardar el registro:', error);
+    }
+  };
 
 
   //trae las afp una de cada una y la fecha más actualizada de esta
@@ -39,63 +136,6 @@ function IndicadoresFinan() {
       });
   }, []);
 
-  
-
-  //trae los indicadores uf,utm y ivp
-   useEffect(() => {
-     axios.get("https://mindicador.cl/api")
-       .then((response) => {
-         const { uf, utm, ivp } = response.data;
-         setUfValue(uf.valor);
-         const date = new Date();
-         const month = date.toLocaleString('default', { month: 'long' }); 
-         const year = date.getFullYear();
-
-         const formattedData = [
-          {
-             mes: `${month} ${year}`,
-             uf: uf.valor,
-             utm: utm.valor,
-             uta: ivp.valor, // Puedes cambiar IVP por UTA si tienes otra fuente
-           },
-         ];
-         setIndicatorsData(formattedData);
-         setLoadingIndicators(false);
-       })
-       .catch((error) => {
-         console.error("Error al obtener los indicadores:", error);
-         setError("Hubo un error al obtener los indicadores.");
-         setLoadingIndicators(false);
-      });
-   }, []);
-
-   useEffect(() => {
-    // Obtener el valor de la UF desde la API para rentas imponibles
-    axios.get("https://mindicador.cl/api")
-      .then((response) => {
-        const ufValue = response.data.uf.valor; // Capturar el valor de la UF
-        setUfValue(ufValue);
-
-        // Actualizar el arreglo rentasData con los valores calculados
-        const updatedRentasData = rentasData.map((item) => {
-          const ufNumber = parseFloat(item.UF); // Extraer el número de UF
-          const montoCalculado = ufNumber * ufValue; // Calcular el monto
-          const montoFormateado = new Intl.NumberFormat("es-CL", {
-            style: "currency",
-            currency: "CLP",
-          }).format(montoCalculado); // Formatear como moneda CLP
-
-          return { ...item, monto: montoFormateado }; // Actualizar el monto formateado
-        });
-
-        setRentasData(updatedRentasData); // Actualizar el estado con los datos nuevos
-      })
-      .catch((error) => {
-        console.error("Error al obtener el valor de la UF:", error);
-      });
-  }, []);
-
-  
   
   const addAfpRow = () => {
     setAfpData([...afpData, newAfp]);
@@ -295,7 +335,13 @@ function IndicadoresFinan() {
            <Typography variant="h6" sx={{ marginBottom: '15px', fontWeight: 'bold', color: '#333' }}>
              Indicadores Mensuales (UF, UTM, UTA)
            </Typography>
-           <TableContainer sx={{ boxShadow: 3, borderRadius: '8px', overflow: 'hidden' }}>
+     
+           {/* Botón para abrir el modal de agregar un registro */}
+           <Button variant="contained" color="primary" onClick={() => handleOpen('add')}>
+             Agregar Registro
+           </Button>
+     
+           <TableContainer sx={{ boxShadow: 3, borderRadius: '8px', overflow: 'hidden', marginTop: '20px' }}>
              <Table sx={{ minWidth: 650 }}>
                <TableHead>
                  <TableRow>
@@ -314,17 +360,95 @@ function IndicadoresFinan() {
                  </TableRow>
                </TableHead>
                <TableBody>
-                 {indicatorsData.map((row, index) => (
+                 {indicadores.map((indicador, index) => (
                    <TableRow key={index}>
-                     <TableCell sx={{ textAlign: 'center' }}>{row.mes}</TableCell>
-                     <TableCell sx={{ textAlign: 'center' }}>{row.uf}</TableCell>
-                     <TableCell sx={{ textAlign: 'center' }}>{row.utm}</TableCell>
-                     <TableCell sx={{ textAlign: 'center' }}>{row.uta}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>{indicador.mes}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>${indicador.uf}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>{indicador.utm}</TableCell>
+                     <TableCell sx={{ textAlign: 'center' }}>{indicador.uta}</TableCell>
                    </TableRow>
                  ))}
                </TableBody>
              </Table>
            </TableContainer>
+     
+           {/* Modal para agregar un nuevo registro */}
+           <Modal
+             open={open.status && open.type === 'add'}
+             onClose={handleClose}
+             aria-labelledby="modal-title"
+             aria-describedby="modal-description"
+           >
+             <Box
+               sx={{
+                 position: 'absolute',
+                 top: '50%',
+                 left: '50%',
+                 transform: 'translate(-50%, -50%)',
+                 backgroundColor: 'white',
+                 padding: '20px',
+                 borderRadius: '8px',
+                 width: '300px',
+                 boxShadow: 3,
+               }}
+             >
+               <Typography id="modal-title" variant="h6" sx={{ marginBottom: '15px' }}>
+                 Agregar Indicador
+               </Typography>
+               <form onSubmit={handleSubmit}>
+                 <Grid container spacing={2}>
+                   <Grid item xs={12}>
+                     <TextField
+                       fullWidth
+                       label="Mes"
+                       name="mes"
+                       value={formData.mes}
+                       onChange={handleChangeIndicadores}
+                       required
+                     />
+                   </Grid>
+                   <Grid item xs={12}>
+                     <TextField
+                       fullWidth
+                       label="UF"
+                       name="uf"
+                       type="number"
+                       value={formData.uf}
+                       onChange={handleChangeIndicadores}
+                       required
+                     />
+                   </Grid>
+                   <Grid item xs={12}>
+                     <TextField
+                       fullWidth
+                       label="UTM"
+                       name="utm"
+                       type="number"
+                       value={formData.utm}
+                       onChange={handleChangeIndicadores}
+                       required
+                     />
+                   </Grid>
+                   <Grid item xs={12}>
+                     <TextField
+                       fullWidth
+                       label="UTA"
+                       name="uta"
+                       type="number"
+                       value={formData.uta}
+                       onChange={handleChangeIndicadores}
+                       required
+                     />
+                   </Grid>
+                   <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                   <Button type="submit" variant="contained" color="primary">
+                     Guardar
+                  </Button>
+                   </Grid>
+                 </Grid>
+               </form>
+             </Box>
+           </Modal>
          </Box>
         )}
       {/*******************************SECCION RENTA TOPE IMPONIBLE*****************************************************************************************/}

@@ -171,5 +171,45 @@ export const buscarFuncionarioPorRut = async (rut) => {
       }
     };
 
+    export const actualizarIndicadores = async (data) => {
+      try {
+        const response = await fetch( `${BASE_URL}/Actualizarindicadores`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data), // Enviar los datos como JSON
+        });
+    
+        if (!response.ok) {
+          throw new Error('Error al guardar los datos');
+        }
+    
+        return await response.json();
+      } catch (error) {
+        console.error('Error al enviar los datos:', error);
+        throw error; // Re-lanzar el error para manejarlo en el componente
+      }
+    };
+
+    export const obtenerIndicadoresPorMes = async (mes) => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/Obtenerindicadores', {
+          params: { mes: mes },
+        });
+        return response.data;  // Devuelve los datos
+      } catch (error) {
+        console.error("Error al obtener los indicadores:", error);
+        throw error;  // Lanzar error para que sea manejado en el componente
+      }
+    };
+    
+    // Función para obtener el mes actual
+    export const obtenerMesActual = () => {
+      const fecha = new Date();
+      const opciones = { month: 'long' };
+      return new Intl.DateTimeFormat('es-ES', opciones).format(fecha);
+    };
+
 
     
