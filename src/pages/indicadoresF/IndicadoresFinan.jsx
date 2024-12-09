@@ -4,12 +4,12 @@ import "./IndicadoresFinan.scss";
 import { Table, TableBody, TableCell, Modal, TableContainer, TableHead, TableRow, TextField, Button, IconButton, Typography, Box, Dialog, Grid,         
   DialogActions,       
   DialogContent,       
-  DialogTitle,         
+  DialogTitle,
+  Snackbar,
+  Alert         
   } from "@mui/material";
 import { Add } from "@mui/icons-material";
-import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual } from "../../apis/indicador";
-
-
+import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual, getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion } from "../../apis/indicador";
 
 function IndicadoresFinan() {
   const [afpData, setAfpData] = useState([]);
@@ -20,14 +20,31 @@ function IndicadoresFinan() {
   const [cargando, setCargando] = useState(true);
   const [mes, setMes] = useState('');
   const [indicatorsUF, setIndicatorsUF] = useState([]);
-  
+  const [rentasMin, setRentasMin] = useState([]); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [asignacionData, setAsignacionData] = useState([]);
+  const [newAsignacion, setNewAsignacion] = useState({
+    Tramo: '',
+    Letra: '',
+    Monto: '',
+    RentaMin: '',
+    RentaMax: ''
+  });
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [formValues, setFormValues] = useState({
+    trab_dependientes_independientes: "",
+    menores_mayores_edad: "",
+    trab_casa_particular: "",
+    fines_no_remuneracionales: "",
+  });
   const [rentasData, setRentasData] = useState([
     { Concepto: "Para afiliados a una AFP", UF: "84.3 UF", monto: "" },
     { Concepto: "Para afiliados al INP", UF: "60 UF", monto: "" },
-    { Concepto: "Para afiliados al INP", UF: "126.6 UF", monto: "" },
+    { Concepto: "Para Seguro de Cesantía", UF: "126.6 UF", monto: "" },
   ]);
-
   const [formData, setFormData] = useState({
     mes: '',
     uf: '',
@@ -36,52 +53,64 @@ function IndicadoresFinan() {
   });
 
   useEffect(() => {
-    
+    const fetchAsignaciones = async () => {
+      try {
+        await traerAsiganaciones(setAsignacionData);
+      } catch (error) {
+        setSnackbarMessage('Error al cargar los datos de asignaciones.');
+        setSnackbarOpen(true);
+      }
+    };
+    fetchAsignaciones();
+  }, []);
+  useEffect(() => { 
     const mesActual = obtenerMesActual();
-    setMes(mesActual);  
+    setMes(mesActual);
     const formatoCLP = (valor) => {
       return new Intl.NumberFormat('es-CL', {
         style: 'currency',
         currency: 'CLP',
-        minimumFractionDigits: 0,  
-        maximumFractionDigits: 0   
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
       }).format(valor);
     };
-
     const formatoUF = (valor) => {
       return new Intl.NumberFormat('es-CL', {
         style: 'decimal',
-        minimumFractionDigits: 2,  
-        maximumFractionDigits: 2   
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
       }).format(valor);
     };
     const formatoMonto = (valor) => {
       return new Intl.NumberFormat('es-CL', {
         style: 'currency',
-        currency: 'CLP',    // Asegura que sea un formato numérico
-        minimumFractionDigits: 0,  // No muestra decimales
-        maximumFractionDigits: 0,  // No muestra decimales
+        currency: 'CLP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
       }).format(valor);
     };
-
+  
     const fetchIndicadores = async () => {
       try {
         const data = await obtenerIndicadoresPorMes(mesActual);  
+        
         const indicadoresConFormato = data.map(indicador => ({
           ...indicador,
           uf: formatoUF(indicador.uf),  
           utm: formatoCLP(indicador.utm),  
-          uta: formatoCLP(indicador.uta),  
+          uta: formatoCLP(indicador.uta),
         }));
-
-        setIndicadores(indicadoresConFormato);  
-        const ufValor = parseFloat( indicadoresConFormato[0]?.uf.replace(' UF', '').replace(/\./g, '').replace(',', '.'));  // Extraemos el valor de la UF
+        
+        setIndicadores(indicadoresConFormato);
+  
+        const ufValor = parseFloat(indicadoresConFormato[0]?.uf.replace(' UF', '').replace(/\./g, '').replace(',', '.'));
         if (!isNaN(ufValor)) {
+          
           const rentasActualizadas = rentasData.map(renta => ({
             ...renta,
-            monto: formatoMonto(parseFloat(renta.UF.replace(' UF', '')) * ufValor),  // Calculamos el monto
+            monto: formatoMonto(parseFloat(renta.UF.replace(' UF', '')) * ufValor),  
           }));
-          setRentasData(rentasActualizadas);  // Actualizamos el estado de rentasData
+          setRentasData(rentasActualizadas);  
         }
       } catch (error) {
         console.error('Error al obtener los indicadores:', error);
@@ -89,12 +118,50 @@ function IndicadoresFinan() {
         setCargando(false);  
       }
     };
+  
     fetchIndicadores();  
-  }, []);
-
+  }, []); 
   
+  useEffect(() => {
+    
+    const fetchRentasData = async () => {
+      try {
+       
+        const data = await getUltimoRegistro();
+      
+        const formattedMin = [
+          { Concepto: "Trab. Dependientes e Independientes", monto: data.trab_dependientes_independientes },
+          { Concepto: "Menores de 18 y Mayores de 65", monto: data.menores_mayores_edad },
+          { Concepto: "Trabajadores de Casa Particular", monto: data.trab_casa_particular },
+          { Concepto: "Para fines no remuneracionales", monto: data.fines_no_remuneracionales },
+        ];
+        // Actualizamos el estado de rentasMin con los datos formateados
+        setRentasMin(formattedMin);
+      } catch (error) {
+        console.error("Error al obtener los datos:", error);
+      }
+    };
   
-
+    fetchRentasData(); 
+  }, []); 
+  const handleSubmitRentas = async () => {
+    try {
+      await crearRegistro(formValues);
+      handleCloseModal();  
+      
+      const data = await getUltimoRegistro();
+      const formattedMin = [
+        { Concepto: "Trab. Dependientes e Independientes", monto: data.trab_dependientes_independientes },
+        { Concepto: "Menores de 18 y Mayores de 65", monto: data.menores_mayores_edad },
+        { Concepto: "Trabajadores de Casa Particular", monto: data.trab_casa_particular },
+        { Concepto: "Para fines no remuneracionales", monto: data.fines_no_remuneracionales },
+      ];
+      setRentasMin(formattedMin);
+    } catch (error) {
+      console.error("Error al guardar datos:", error);
+    }
+  };
+  
   const handleOpen = (modalType) => {
     setOpen({ type: modalType, status: true });
   };
@@ -102,11 +169,42 @@ function IndicadoresFinan() {
   const handleClose = () => {
     setOpen({ type: '', status: false });
   };
-
+  const handleChangeAsignacion = (event) => {
+    const {name, value } = event.target;
+    setNewAsignacion({ ...newAsignacion, [name]: value});
+  } 
  
   const handleChangeIndicadores = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const handleSumitAsignaciones = async (e) => {
+    e.preventDefault();
+
+    if(!newAsignacion.Tramo || !newAsignacion.Letra || !newAsignacion.Monto){
+      setSnackbarMessage('Por favor, complete todos los campos obligatorios.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      const response = await crearAsignacion(newAsignacion);
+      if (response.success){
+        setAsignacionData([...asignacionData, newAsignacion]);
+        setSnackbarMessage('Registro agregado con éxito');
+        setSnackbarOpen(true);
+        handleCloseModal();
+      }else{
+        throw new Error (response.message || "Error al agregar el registro.") 
+      }
+    } catch (error) {
+      setSnackbarMessage(error.message || "Error al guardar el resgistro.")
+      setSnackbarOpen(true); 
+    }
+  };
+  const handleSnackbarclose = () => {
+    setSnackbarOpen(false);
+  }
 
   
   const handleSubmit = async (e) => {
@@ -155,13 +253,16 @@ function IndicadoresFinan() {
     filledAfpData.push({ afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" });
   }
  
-  //Rentas minimas imponibles 
-  const rentasMinimasData = [
-    { Concepto: "Trab. Dependientes e Independientes", Monto: "$500.000" },
-    { Concepto: "Menores de 18 y Mayores de 65", Monto: "$372.989" },
-    { Concepto: "Trabajadores de Casa Particular", Monto: "$500.000" },
-    { Concepto: "Para fines no remuneracionales", Monto: "$322.295" },
-  ];
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setNewAsignacion({ Tramo: '', Letra: '', Monto: '', RentaMin: '', RentaMax: '' });
+  }
+
+  const handleInputRentas = (e) => {
+    const { name, value } = e.target;
+    setFormValues({ ...formValues, [name]: value });
+  };
 
   // Actualizar los valores de una fila
   const handleInputChange = (e, index, field) => {
@@ -456,7 +557,7 @@ function IndicadoresFinan() {
       {currentSection === "Renta_Topes_Impon" && (
         <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
         <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
-          Rentas Mínimas Imponibles (RMI)
+          Rentas Topes Imponibles 
         </Typography>
   
         <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
@@ -491,45 +592,295 @@ function IndicadoresFinan() {
       {/*******************************SECCION RENTA MINIMA IMPONIBLE*****************************************************************************************/}
 
       {currentSection === "Rentas_Min_Impon." && (
-        <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
-        <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
-          Rentas Mínimas Imponibles
-        </Typography>
-        <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
-                  Concepto
-                </TableCell>
-                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#1976d2", color: "white", textAlign: "center" }}>
-                  Monto
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rentasMinimasData.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell sx={{ textAlign: "center" }}>{row.Concepto}</TableCell>
-                  <TableCell sx={{ textAlign: "center" }}>{row.Monto}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+         <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
+         <Typography
+           variant="h6"
+           sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}
+         >
+           Rentas Mínimas Imponibles 
+         </Typography>
+   
+         <Button
+           variant="contained"
+           color="primary"
+           sx={{ marginBottom: "15px" }}
+           onClick={handleOpenModal}
+         >
+           Agregar Datos
+         </Button>
+   
+         <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
+           <Table sx={{ minWidth: 650 }}>
+             <TableHead>
+               <TableRow>
+                 <TableCell
+                   sx={{
+                     fontWeight: "bold",
+                     backgroundColor: "#1976d2",
+                     color: "white",
+                     textAlign: "center",
+                   }}
+                 >
+                   Concepto
+                 </TableCell>
+                 <TableCell
+                   sx={{
+                     fontWeight: "bold",
+                     backgroundColor: "#1976d2",
+                     color: "white",
+                     textAlign: "center",
+                   }}
+                 >
+                   Monto 
+                 </TableCell>
+               </TableRow>
+             </TableHead>
+             <TableBody>
+               {rentasMin.map((item, index) => (
+                 <TableRow key={index}>
+                   <TableCell sx={{ textAlign: "center" }}>{item.Concepto}</TableCell>
+                   <TableCell sx={{ textAlign: "center" }}>
+                     {new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(item.monto)}
+                   </TableCell>
+                 </TableRow>
+               ))}
+             </TableBody>
+           </Table>
+         </TableContainer>
+   
+         {/* Modal for adding new data */}
+         <Modal open={isModalOpen} onClose={handleCloseModal}>
+           <Box
+             sx={{
+               position: "absolute",
+               top: "50%",
+               left: "50%",
+               transform: "translate(-50%, -50%)",
+               width: 400,
+               bgcolor: "background.paper",
+               boxShadow: 24,
+               p: 4,
+               borderRadius: 2,
+             }}
+           >
+             <Typography variant="h6" sx={{ marginBottom: "15px" }}>
+               Agregar Datos
+             </Typography>
+             <TextField
+               label="Trab. Dependientes e Independientes"
+               fullWidth
+               sx={{ marginBottom: "15px" }}
+               name="trab_dependientes_independientes"
+               value={formValues.trab_dependientes_independientes}
+               onChange={ handleInputRentas}
+             />
+             <TextField
+               label="Menores de 18 y Mayores de 65"
+               fullWidth
+               sx={{ marginBottom: "15px" }}
+               name="menores_mayores_edad"
+               value={formValues.menores_mayores_edad}
+               onChange={ handleInputRentas}
+             />
+             <TextField
+               label="Trabajadores de Casa Particular"
+               fullWidth
+               sx={{ marginBottom: "15px" }}
+               name="trab_casa_particular"
+               value={formValues.trab_casa_particular}
+               onChange={ handleInputRentas}
+             />
+             <TextField
+               label="Para fines no remuneracionales"
+               fullWidth
+               sx={{ marginBottom: "15px" }}
+               name="fines_no_remuneracionales"
+               value={formValues.fines_no_remuneracionales}
+               onChange={ handleInputRentas}
+             />
+             <Button
+               variant="contained"
+               color="primary"
+               onClick={handleSubmitRentas}
+               fullWidth
+             >
+               Guardar
+             </Button>
+           </Box>
+         </Modal>
+       </Box>
       )}
 
       {/*******************************SECCION ASIGNACION FAMILIAR*****************************************************************************************/}
 
       {currentSection === "Asignacion_Familiar" && (
-        <div>
-          <h2>APV</h2>
-          <p>Aquí puedes consultar el APV del funcionario.</p>
-        </div>
+      <Box sx={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px' }}>
+      <Typography variant="h6" sx={{ marginBottom: '15px', fontWeight: 'bold', color: '#333' }}>
+        Asignación Familiar
+      </Typography>
+    
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleOpenModal}
+        sx={{ marginBottom: '20px' }}
+      >
+        Agregar Nuevo Registro
+      </Button>
+    
+      <TableContainer sx={{ boxShadow: 3, borderRadius: '8px', overflow: 'hidden' }}>
+        <Table sx={{ minWidth: 650 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                Tramo
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                Letra
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                Monto
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                Renta Mínima
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
+                Renta Máxima
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+          {asignacionData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} sx={{ textAlign: 'center' }}>Cargando Asignaciones...</TableCell>
+            </TableRow>
+          ) : (
+            asignacionData.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell sx={{ textAlign: 'center' }}>{item.Tramo ?? 'N/A'}</TableCell>
+                <TableCell sx={{ textAlign: 'center' }}>{item.Letra ?? 'N/A'}</TableCell>
+                <TableCell sx={{ textAlign: 'center' }}>
+                  {item.Monto !== null ? `$${parseFloat(item.Monto).toLocaleString()}` : 'N/A'}
+                </TableCell>
+                <TableCell sx={{ textAlign: 'center' }}>
+                  {item.RentaMin !== null ? `$${parseFloat(item.RentaMin).toLocaleString()}` : 'N/A'}
+                </TableCell>
+                <TableCell sx={{ textAlign: 'center' }}>
+                  {item.RentaMax !== null ? `$${parseFloat(item.RentaMax).toLocaleString()}` : 'N/A'}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+        </Table>
+      </TableContainer>
+    
+      {/* Modal para agregar datos */}
+      <Modal open={isModalOpen} onClose={handleCloseModal}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: 24,
+            width: '400px',
+          }}
+        >
+          <Typography variant="h6" sx={{ marginBottom: '15px' }}>
+            Agregar Asignación Familiar
+          </Typography>
+          <form onSubmit={handleSumitAsignaciones}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Tramo"
+                  name="Tramo"
+                  type="number"
+                  value={newAsignacion.Tramo}
+                  onChange={handleChangeAsignacion}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Letra"
+                  name="Letra"
+                  value={newAsignacion.Letra}
+                  onChange={handleChangeAsignacion}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Monto"
+                  name="Monto"
+                  type="number"
+                  value={newAsignacion.Monto}
+                  onChange={handleChangeAsignacion}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Renta Mínima"
+                  name="RentaMin"
+                  type="number"
+                  value={newAsignacion.RentaMin}
+                  onChange={handleChangeAsignacion}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Renta Máxima"
+                  name="RentaMax"
+                  type="number"
+                  value={newAsignacion.RentaMax}
+                  onChange={handleChangeAsignacion}
+                />
+              </Grid>
+            </Grid>
+            <Box sx={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
+              <Button variant="outlined" onClick={handleCloseModal}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="contained" color="primary">
+                Guardar
+              </Button>
+            </Box>
+          </form>
+        </Box>
+      </Modal>
+    
+      {/* Snackbar para mostrar mensaje */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarMessage.includes('Error') ? 'error' : 'success'}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </Box>
       )}
     </div>
+    
   );
+
+
 }
 
 export default IndicadoresFinan;

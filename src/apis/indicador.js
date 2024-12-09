@@ -211,5 +211,45 @@ export const buscarFuncionarioPorRut = async (rut) => {
       return new Intl.DateTimeFormat('es-ES', opciones).format(fecha);
     };
 
+    export const getUltimoRegistro = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/trabajadores/ultimo`);
+        return response.data.data; // Ajusta según la estructura de la API
+      } catch (error) {
+        console.error("Error al obtener el último registro:", error);
+        throw error;
+      }
+    };
+    
+    // Crear un nuevo registro
+    export const crearRegistro = async (data) => {
+      try {
+        await axios.post(`${BASE_URL}/trabajadores`, data);
+      } catch (error) {
+        console.error("Error al crear un nuevo registro:", error);
+        throw error;
+      }
+    };
+
+    export const traerAsiganaciones = async (setAsignacionData) => {
+      try {
+        const response = await fetch(`${BASE_URL}/asignaciones`);
+        const data = await response.json();
+        console.log(data); // Verifica que los datos son correctos
+        setAsignacionData(data); // Actualiza el estado con los datos obtenidos
+      } catch (error) {
+        console.error('Error al traer las asignaciones:', error);
+        throw error;
+      }
+    };
+
+    export const crearAsignacion = async (asignacion)  => {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/CrearAsignaciones`, asignacion);
+        return response.data;
+      } catch (error) {
+        throw new  Error ('Error al comunicarse con el servidor')
+      }
+    };
 
     
