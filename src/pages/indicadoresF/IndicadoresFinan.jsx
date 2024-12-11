@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, Modal, TableContainer, TableHead, TableRow
   } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual, 
-         getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion, listarAfps, createAfp } from "../../apis/indicador";
+         getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion, listarAfps, createAfp, obtenerTodosIndicadores } from "../../apis/indicador";
 
 function IndicadoresFinan() {
   const [currentSection, setCurrentSection] = useState("AFP");
@@ -26,6 +26,8 @@ function IndicadoresFinan() {
   const [editIndexIn, setEditIndexIn] = useState(null);
   const [editedDataIn, setEditedDataIn] = useState({});
   const [modalOpenIn, setModalOpenIn] = useState(false);
+  const [modalTodosOpen, setModalTodosOpen] = useState(false);
+  const [todosIndicadores, setTodosIndicadores] = useState([]);
   /*Fin de la tabla indicadores */
   const [afpData, setAfpData] = useState([]);
   const [editIndex, setEditIndex] = useState(null); 
@@ -304,15 +306,24 @@ function IndicadoresFinan() {
   const cargarIndicadores = async () => {
     try {
       const datos = await obtenerIndicadoresPorMes(mes);
-      setIndicadores(Array.isArray(datos) ? datos : [datos]); // Convertir en arreglo si es necesario
+      setIndicadores(Array.isArray(datos) ? datos : [datos]); 
     } catch (error) {
       console.error("Error al cargar los indicadores:", error);
     }
   };
 
   useEffect(() => {
-    cargarIndicadores(); // Llama a la función al montar el componente
-  }, [mes]); // [] asegura que se ejecute solo una vez al montar
+    cargarIndicadores(); 
+  }, [mes]); 
+
+  const cargarTodosIndicadores = async () => {
+    try {
+      const datos = await obtenerTodosIndicadores(); 
+      setTodosIndicadores(Array.isArray(datos) ? datos : [datos]);
+    } catch (error) {
+      console.error("Error al cargar todos los indicadores:", error);
+    }
+  };
 
   // Manejar el cambio en los valores editados
   const handleInputChangeIn = (e, field) => {
@@ -547,108 +558,79 @@ function IndicadoresFinan() {
            Indicadores Mensuales (UF, UTM, UTA)
          </Typography>
    
+         <Button
+           variant="contained"
+           color="primary"
+           sx={{ marginBottom: "15px" }}
+           onClick={() => {
+             cargarTodosIndicadores();
+             setModalTodosOpen(true);
+           }}
+         >
+           Ver Todos los Registros
+         </Button>
+   
          <TableContainer
            sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}
          >
            <Table sx={{ minWidth: 650 }}>
              <TableHead>
                <TableRow>
-                 {[
-                   "Mes",
-                   "UF",
-                   "UTM",
-                   "UTA",
-                   "Fecha de actualización",
-                 ].map((header, i) => (
-                   <TableCell
-                     key={i}
-                     sx={{
-                       fontWeight: "bold",
-                       backgroundColor: "#1976d2",
-                       color: "white",
-                       textAlign: "center",
-                     }}
-                   >
-                     {header}
-                   </TableCell>
-                 ))}
+                 {["Mes", "UF", "UTM", "UTA", "Fecha de actualización"].map(
+                   (header, i) => (
+                     <TableCell
+                       key={i}
+                       sx={{
+                         fontWeight: "bold",
+                         backgroundColor: "#1976d2",
+                         color: "white",
+                         textAlign: "center",
+                       }}
+                     >
+                       {header}
+                     </TableCell>
+                   )
+                 )}
                </TableRow>
              </TableHead>
              <TableBody>
-              {Array.isArray(indicadores) ? (
-                indicadores.map((indicador, index) => (
-                  <TableRow key={index}>
-                    {["mes", "uf", "utm", "uta"].map((field, i) => (
-                      <TableCell key={i} onClick={() => handleEditIn(index, indicador)}>
-                        {editIndexIn === index && field !== "mes" ? (
-                          <TextField
-                            value={editedDataIn[field] || ""}
-                            onChange={(e) => handleInputChangeIn(e, field)}
-                            onKeyDown={handleKeyDownIn}
-                            variant="outlined"
-                            size="small"
-                            fullWidth
-                          />
-                        ) : field === "uf" || field === "utm" ? (
-                          formatCurrency(indicador[field], 2)
-                        ) : field === "uta" ? (
-                          formatCurrency(indicador[field], 0)
-                        ) : (
-                          indicador[field]
-                        )}
-                      </TableCell>
-                    ))}
-                    <TableCell>
-                      {indicador.created_at
-                        ? new Date(indicador.created_at).toLocaleDateString("es-CL", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
-                        : "Sin fecha"}
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : indicadores ? (
-                <TableRow>
-                  {["mes", "uf", "utm", "uta"].map((field, i) => (
-                    <TableCell key={i} onClick={() => handleEditIn(0, indicadores)}>
-                      {editIndexIn === 0 && field !== "mes" ? (
-                        <TextField
-                          value={editedDataIn[field] || ""}
-                          onChange={(e) => handleInputChangeIn(e, field)}
-                          onKeyDown={handleKeyDownIn}
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                        />
-                      ) : field === "uf" || field === "utm" ? (
-                        formatCurrency(indicadores[field], 2)
-                      ) : field === "uta" ? (
-                        formatCurrency(indicadores[field], 0)
-                      ) : (
-                        indicadores[field]
-                      )}
-                    </TableCell>
-                  ))}
-                  <TableCell>
-                    {indicadores.created_at
-                      ? new Date(indicadores.created_at).toLocaleDateString("es-CL", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })
-                      : "Sin fecha"}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    No hay datos disponibles.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
+               {indicadores.map((indicador, index) => (
+                 <TableRow key={index}>
+                   {["mes", "uf", "utm", "uta"].map((field, i) => (
+                     <TableCell
+                       key={i}
+                       onClick={() => handleEditIn(index, indicador)}
+                     >
+                       {editIndexIn === index && field !== "mes" ? (
+                         <TextField
+                           value={editedDataIn[field] || ""}
+                           onChange={(e) => handleInputChangeIn(e, field)}
+                           onKeyDown={handleKeyDownIn}
+                           variant="outlined"
+                           size="small"
+                           fullWidth
+                         />
+                       ) : field === "uf" || field === "utm" ? (
+                         formatCurrency(indicador[field], 2)
+                       ) : field === "uta" ? (
+                         formatCurrency(indicador[field], 0)
+                       ) : (
+                         indicador[field]
+                       )}
+                     </TableCell>
+                   ))}
+                   <TableCell>
+                     {indicador.created_at
+                       ? new Date(indicador.created_at).toLocaleDateString("es-CL", {
+                           day: "2-digit",
+                           month: "2-digit",
+                           year: "numeric",
+                         })
+                       : "Sin fecha"}
+                   </TableCell>
+                 </TableRow>
+               ))}
+             </TableBody>
            </Table>
          </TableContainer>
    
@@ -668,7 +650,11 @@ function IndicadoresFinan() {
            >
              <Typography variant="h6">¿Confirmar los cambios?</Typography>
              <Box
-               sx={{ marginTop: "20px", display: "flex", justifyContent: "space-between" }}
+               sx={{
+                 marginTop: "20px",
+                 display: "flex",
+                 justifyContent: "space-between",
+               }}
              >
                <Button onClick={handleCancel} color="error" variant="contained">
                  Cancelar
@@ -677,6 +663,67 @@ function IndicadoresFinan() {
                  Confirmar
                </Button>
              </Box>
+           </Box>
+         </Modal>
+   
+         {/* Modal de todos los registros */}
+         <Modal open={modalTodosOpen} onClose={() => setModalTodosOpen(false)}>
+           <Box
+             sx={{
+               position: "absolute",
+               top: "50%",
+               left: "50%",
+               transform: "translate(-50%, -50%)",
+               backgroundColor: "white",
+               padding: "20px",
+               borderRadius: "8px",
+               boxShadow: 3,
+               width: "80%",
+               maxHeight: "80%",
+               overflowY: "auto",
+             }}
+           >
+             <Typography variant="h6" sx={{ marginBottom: "15px" }}>
+               Todos los Registros
+             </Typography>
+             <TableContainer>
+               <Table>
+                 <TableHead>
+                   <TableRow>
+                     {["Mes", "UF", "UTM", "UTA", "Fecha de actualización"].map(
+                       (header, i) => (
+                         <TableCell
+                           key={i}
+                           sx={{
+                             fontWeight: "bold",
+                             backgroundColor: "#1976d2",
+                             color: "white",
+                             textAlign: "center",
+                           }}
+                         >
+                           {header}
+                         </TableCell>
+                       )
+                     )}
+                   </TableRow>
+                 </TableHead>
+                 <TableBody>
+                   {todosIndicadores.map((indicador, index) => (
+                     <TableRow key={index}>
+                       <TableCell>{indicador.mes}</TableCell>
+                       <TableCell>{formatCurrency(indicador.uf, 2)}</TableCell>
+                       <TableCell>{formatCurrency(indicador.utm, 2)}</TableCell>
+                       <TableCell>{formatCurrency(indicador.uta, 0)}</TableCell>
+                       <TableCell>
+                         {new Date(indicador.created_at).toLocaleDateString(
+                           "es-CL"
+                         )}
+                       </TableCell>
+                     </TableRow>
+                   ))}
+                 </TableBody>
+               </Table>
+             </TableContainer>
            </Box>
          </Modal>
        </Box>

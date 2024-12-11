@@ -192,6 +192,16 @@ export const buscarFuncionarioPorRut = async (rut) => {
       }
     };
 
+    export const obtenerTodosIndicadores = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/indicadores-todos`);
+        return response.data; // Devuelve los datos de la respuesta
+      } catch (error) {
+        console.error('Error al obtener todos los indicadores:', error);
+        throw error; // Lanza el error para manejarlo en el componente
+      }
+    };
+
     export const obtenerIndicadoresPorMes = async (mes) => {
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/Obtenerindicadores', {
