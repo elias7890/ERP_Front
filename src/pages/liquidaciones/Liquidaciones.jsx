@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Liquidaciones.scss';
 import axios from "axios";
-import { createLiquidacion } from '../../apis/indicador';
+import { createLiquidacion, getFuncionarioDatosCompletos } from '../../apis/indicador';
 
 const Liquidaciones = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +23,27 @@ const Liquidaciones = () => {
   });
 
   const [afps, setAfps] = useState([]);
+  const [funcionario, setFuncionario] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await getFuncionarioDatosCompletos(rutFuncionario);
+        setFuncionario(data);
+      } catch (err) {
+        setError('No se pudo obtener los datos del funcionario');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (rutFuncionario) {
+      fetchData();
+    }
+  }, [rutFuncionario]);
   
 
   const handleSelectAfpChange = (event) => {
@@ -36,19 +56,7 @@ const Liquidaciones = () => {
     }));
   };
 
-  useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/afps")
-      .then((response) => {
-        console.log("Datos obtenidos:", response.data.data);
-        const uniqueAfps = [
-          ...new Map(response.data.data.map((afp) => [afp.afp, afp])).values()
-        ];
-        setAfps(uniqueAfps); 
-      })
-      .catch((error) => {
-        console.error("Error al obtener las AFPs:", error);
-      });
-  }, []);
+
 
   const salud = [
     {id: '1', name: 'Fonasa', descuento: 7},
