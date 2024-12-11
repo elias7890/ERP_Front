@@ -111,8 +111,6 @@ const Liquidaciones = () => {
       console.error('Error al enviar los datos:', error);
     }
   };
-
-
   return (
     <div className="form-wrapperLI">
       <div className="form-containerLi">

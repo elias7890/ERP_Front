@@ -9,21 +9,29 @@ import { Table, TableBody, TableCell, Modal, TableContainer, TableHead, TableRow
   Alert         
   } from "@mui/material";
 import { Add } from "@mui/icons-material";
-import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual, getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion } from "../../apis/indicador";
+import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual, 
+         getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion, listarAfps, createAfp } from "../../apis/indicador";
 
 function IndicadoresFinan() {
-  const [afpData, setAfpData] = useState([]);
-  const [openModal, setOpenModal] = useState(false);
-  const [message, setMessage] = useState('');
   const [currentSection, setCurrentSection] = useState("AFP");
-  const [indicadores, setIndicadores] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [mes, setMes] = useState('');
   const [indicatorsUF, setIndicatorsUF] = useState([]);
   const [rentasMin, setRentasMin] = useState([]); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [asignacionData, setAsignacionData] = useState([]);
+  /*de la tabla indicadores*/
+  const [indicadores, setIndicadores] = useState([]);
+  const [mes, setMes] = useState('');
+  const [editIndexIn, setEditIndexIn] = useState(null);
+  const [editedDataIn, setEditedDataIn] = useState({});
+  const [modalOpenIn, setModalOpenIn] = useState(false);
+  /*Fin de la tabla indicadores */
+  const [afpData, setAfpData] = useState([]);
+  const [editIndex, setEditIndex] = useState(null); 
+  const [newData, setNewData] = useState({});
+  const [message, setMessage] = useState("");
+  const [openModal, setOpenModal] = useState(false);
   const [newAsignacion, setNewAsignacion] = useState({
     Tramo: '',
     Letra: '',
@@ -52,6 +60,28 @@ function IndicadoresFinan() {
     uta: ''
   });
 
+  useEffect(() => {
+    const fetchAfps = async () => {
+      try {
+        const response = await listarAfps(); // Llamamos al servicio
+        console.log("Datos recibidos de la API:", response);
+        
+        if (response && response.data && Array.isArray(response.data)) {
+          setAfpData(response.data); // Asignamos los datos al estado
+        } else {
+          setSnackbarMessage('Error: No se encontraron datos de AFP.');
+          setSnackbarOpen(true);
+          setAfpData([]);
+        }
+      } catch (error) {
+        setSnackbarMessage('Error al cargar los datos de AFP.');
+        setSnackbarOpen(true);
+      }
+    };
+
+    fetchAfps(); // Llamar al servicio cuando se monta el componente
+  }, []);
+ 
   useEffect(() => {
     const fetchAsignaciones = async () => {
       try {
@@ -162,22 +192,11 @@ function IndicadoresFinan() {
     }
   };
   
-  const handleOpen = (modalType) => {
-    setOpen({ type: modalType, status: true });
-  };
-
-  const handleClose = () => {
-    setOpen({ type: '', status: false });
-  };
   const handleChangeAsignacion = (event) => {
     const {name, value } = event.target;
     setNewAsignacion({ ...newAsignacion, [name]: value});
   } 
  
-  const handleChangeIndicadores = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
   const handleSumitAsignaciones = async (e) => {
     e.preventDefault();
 
@@ -206,7 +225,6 @@ function IndicadoresFinan() {
     setSnackbarOpen(false);
   }
 
-  
   const handleSubmit = async (e) => {
     e.preventDefault(); 
     try {
@@ -220,39 +238,6 @@ function IndicadoresFinan() {
     }
   };
 
-
-  //trae las afp una de cada una y la fecha más actualizada de esta
-  useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/afps")
-      .then((response) => {
-        console.log("Datos obtenidos:", response.data);
-        // Asegurarte de que los datos sean un arreglo
-        setAfpData(Array.isArray(response.data.data) ? response.data.data : []);
-      })
-      .catch((error) => {
-        console.error("Hubo un error al cargar los datos:", error);
-      });
-  }, []);
-
-  
-  const addAfpRow = () => {
-    setAfpData([...afpData, newAfp]);
-    setNewAfp({ afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" });
-    setOpenModal(false);
-  };
-
-  const [newAfp, setNewAfp] = useState({
-    afp: "",
-    tasa_afp: "",
-    sis: "",
-    tasa_afp_ind: "",
-  });
-
-  const filledAfpData = [...afpData];
-  while (filledAfpData.length < 7) {
-    filledAfpData.push({ afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" });
-  }
- 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -263,50 +248,132 @@ function IndicadoresFinan() {
     const { name, value } = e.target;
     setFormValues({ ...formValues, [name]: value });
   };
-
-  // Actualizar los valores de una fila
-  const handleInputChange = (e, index, field) => {
-    const updatedData = [...afpData];
-    updatedData[index][field] = e.target.value;
-    setAfpData(updatedData);
-  };
-  const handleAddRow = () => {
-    const newRow = { afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" };
-    setAfpData([...afpData, newRow]); // Esto sigue funcionando igual
+  
+  const handleInputChange = (e, field) => {
+    setNewData((prevData) => ({
+      ...prevData,
+      [field]: e.target.value,
+    }));
   };
 
-  const saveData = (afpToCreate) => {
-    if (!afpToCreate.afp || !afpToCreate.tasa_afp || !afpToCreate.sis || !afpToCreate.tasa_afp_ind) {
-      setMessage('Todos los campos son obligatorios.');
-      return;
+  const handleEdit = (index, afp) => {
+    setEditIndex(index); // Establecer el índice de la fila que se va a editar
+    setNewData({
+      afp: afp.afp,
+      tasa_afp: afp.tasa_afp,
+      sis: afp.sis,
+      tasa_afp_ind: afp.tasa_afp_ind,
+    });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      setOpenModal(true); // Abrir el modal al presionar "Enter"
     }
-  
-    axios.post("http://127.0.0.1:8000/api/afps", afpToCreate)
-      .then((response) => {
-        console.log("Nueva AFP creada correctamente:", response.data);
-        setMessage('AFP creada correctamente.');
-  
-        setNewAfp({ afp: "", tasa_afp: "", sis: "", tasa_afp_ind: "" });
-  
-        setTimeout(() => setMessage(''), 5000);
-  
-        axios.get("http://127.0.0.1:8000/api/afps")
-          .then((response) => {
-            setAfpData(response.data.data);
-          })
-          .catch((error) => {
-            console.error("Error al obtener los datos actualizados:", error);
-          });
-
-        setOpenModal(false);
-      })
-      .catch((error) => {
-        console.error("Error al crear la nueva AFP:", error);
-        setMessage('Hubo un error al crear la AFP.');
-
-        setTimeout(() => setMessage(''), 2000);
-      });
   };
+  const fetchAfpData = async () => {
+    try {
+      const response = await listarAfps(); // Servicio que lista las AFP
+      setAfpData(response.data); // Actualizar el estado con los nuevos datos
+    } catch (error) {
+      console.error("Error al cargar los datos de AFP:", error);
+    }
+  };
+
+  // Guardar cambios
+  const handleSave = async () => {
+    try {
+      // Llamar al servicio para crear un nuevo registro
+      const response = await createAfp(newData);
+      if (response.status === 200) {
+        await fetchAfpData();
+        setAfpData((prevData) => [...prevData, newData]); // Agregar el nuevo registro localmente
+        setMessage('Registro creado correctamente.');
+      } else {
+        setMessage('Error al crear el registro.');
+      }
+      await fetchAfpData();
+    } catch (error) {
+      setMessage('Ocurrió un error al intentar guardar el registro.');
+    }
+    setOpenModal(false);
+    setEditIndex(null); // Restablecer editIndex
+  };
+
+  /*Tabla indicadores */
+  const cargarIndicadores = async () => {
+    try {
+      const datos = await obtenerIndicadoresPorMes(mes);
+      setIndicadores(Array.isArray(datos) ? datos : [datos]); // Convertir en arreglo si es necesario
+    } catch (error) {
+      console.error("Error al cargar los indicadores:", error);
+    }
+  };
+
+  useEffect(() => {
+    cargarIndicadores(); // Llama a la función al montar el componente
+  }, [mes]); // [] asegura que se ejecute solo una vez al montar
+
+  // Manejar el cambio en los valores editados
+  const handleInputChangeIn = (e, field) => {
+    setEditedDataIn({
+      ...editedDataIn,
+      [field]: e.target.value,
+    });
+  };
+
+    // Iniciar la edición
+  const handleEditIn = (index, indicador) => {
+    setEditIndexIn(index);
+    setEditedDataIn({ ...indicador });
+  };
+
+  const handleConfirm = async () => {
+    setModalOpenIn(false);
+    try {
+      const payload = {
+        mes: editedDataIn.mes,
+        uf: parseFloat(editedDataIn.uf),
+        utm: parseFloat(editedDataIn.utm),
+        uta: parseFloat(editedDataIn.uta),
+      };
+      await actualizarIndicadores(payload);
+      console.log("Datos enviados correctamente:", payload);
+      setIndicadores((prev) =>
+        prev.map((item, index) =>
+          index === editIndexIn ? { ...item, ...editedDataIn } : item
+        )
+      );
+    } catch (error) {
+      console.error("Error al actualizar los datos:", error);
+    }
+    setEditIndexIn(null);
+    setEditedDataIn({});
+  };
+
+  const handleCancel = () => {
+    setModalOpenIn(false);
+    setEditIndexIn(null);
+    setEditedDataIn({});
+  };
+
+  const handleKeyDownIn = (e) => {
+    if (e.key === "Enter") {
+      setModalOpenIn(true);
+    }
+  };
+
+  // Formatear moneda CLP
+  const formatCurrency = (value, decimals = 0) => {
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value);
+  };
+
+
 
   return (
     <div className="containerFun">
@@ -334,223 +401,285 @@ function IndicadoresFinan() {
       {/*******************************SECCION AFP*****************************************************************************************/}
 
       {currentSection === "AFP" && (
-        <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
-        <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
-          Tasa Cotización Obligatoria AFP
-        </Typography>
-      
-        <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                {["AFP", "Tasa AFP", "SIS", "Tasa AFP Independientes"].map((header, i) => (
-                  <TableCell
-                    key={i}
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: "#1976d2",
-                      color: "white",
-                      textAlign: "center"
-                    }}
-                  >
-                    {header}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filledAfpData.map((row, index) => (
-                <TableRow key={index}>
-                  {["afp", "tasa_afp", "sis", "tasa_afp_ind"].map((field, i) => (
-                    <TableCell key={i} sx={{ textAlign: "center" }}>
-                      <TextField
-                        size="small"
-                        variant="outlined"
-                        value={row[field]}
-                        onChange={(e) => handleInputChange(e, index, field)}
-                        InputProps={{
-                          style: { backgroundColor: "#f4f4f4", color: "#333" }
-                        }}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      
-        <Box sx={{ marginTop: "15px", textAlign: "center" }}>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setOpenModal(true)}
-            sx={{
-              backgroundColor: "#1976d2",
-              color: "white",
-              "&:hover": { backgroundColor: "#1565c0" }
-            }}
-          >
-            Agregar AFP
-          </Button>
-        </Box>
-      
-        {/* Modal for Adding AFP */}
-        <Dialog open={openModal} onClose={() => setOpenModal(false)}>
-          <DialogTitle>Agregar Nueva AFP</DialogTitle>
-          <DialogContent>
-            {["Nombre AFP", "Tasa AFP", "Sis", "Tasa AFP Independiente"].map((field, i) => (
-              <TextField
-                key={i}
-                label={field.toUpperCase()}
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                value={newAfp[field]}
-                onChange={(e) => setNewAfp({ ...newAfp, [field]: e.target.value })}
-              />
-            ))}
-          </DialogContent>
-          <DialogActions>
-            {message && (
-              <div style={{ marginTop: '20px', color: message.includes('correctamente') ? 'green' : 'red' }}>
-                {message}
-              </div>
-            )}
-            <Button onClick={() => setOpenModal(false)} color="error">
-              Cancelar
-            </Button>
-            <Button onClick={() => saveData(newAfp)} variant="contained" color="primary">
-              Agregar
-            </Button>
-          </DialogActions>
-        </Dialog>
-      
-      </Box>
+         <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
+         <Typography variant="h6" sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}>
+           Tasa Cotización Obligatoria AFP
+         </Typography>
+       
+         <TableContainer sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden", padding: "4px 8px" }}>
+           <Table sx={{ minWidth: 650 }}>
+             <TableHead>
+               <TableRow>
+                 {["AFP", "Tasa AFP", "SIS", "Tasa AFP Independientes", "Fecha de Actualización"].map((header, i) => (
+                   <TableCell
+                     key={i}
+                     sx={{
+                       fontWeight: "bold",
+                       backgroundColor: "#1976d2",
+                       color: "white",
+                       textAlign: "center",
+                       
+                     }}
+                   >
+                     {header}
+                   </TableCell>
+                 ))}
+               </TableRow>
+             </TableHead>
+             <TableBody>
+               {afpData.length > 0 ? (
+                 afpData.map((afp, index) => (
+                   <TableRow key={index}>
+                     <TableCell onClick={() => handleEdit(index, afp)} sx={{ textAlign: "center" }}>
+                       {editIndex === index ? (
+                         <TextField
+                           value={newData.afp}
+                           onChange={(e) => handleInputChange(e, 'afp')}
+                           onKeyDown={handleKeyDown} // Detectar la tecla "Enter"
+                           variant="outlined"
+                           size="small"
+                         />
+                       ) : (
+                         afp.afp
+                       )}
+                     </TableCell>
+                     <TableCell onClick={() => handleEdit(index, afp)} sx={{ textAlign: "center" }}>
+                       {editIndex === index ? (
+                         <TextField
+                           value={newData.tasa_afp}
+                           onChange={(e) => handleInputChange(e, 'tasa_afp')}
+                           onKeyDown={handleKeyDown}
+                           variant="outlined"
+                           size="small"
+                         />
+                       ) : (
+                         afp.tasa_afp
+                       )}
+                     </TableCell>
+                     <TableCell onClick={() => handleEdit(index, afp)} sx={{ textAlign: "center" }}>
+                       {editIndex === index ? (
+                         <TextField
+                           value={newData.sis}
+                           onChange={(e) => handleInputChange(e, 'sis')}
+                           onKeyDown={handleKeyDown}
+                           variant="outlined"
+                           size="small"
+                         />
+                       ) : (
+                         afp.sis
+                       )}
+                     </TableCell>
+                     <TableCell onClick={() => handleEdit(index, afp)} sx={{ textAlign: "center" }}>
+                       {editIndex === index ? (
+                         <TextField
+                           value={newData.tasa_afp_ind}
+                           onChange={(e) => handleInputChange(e, 'tasa_afp_ind')}
+                           onKeyDown={handleKeyDown}
+                           variant="outlined"
+                           size="small"
+                         />
+                       ) : (
+                         afp.tasa_afp_ind
+                       )}
+                     </TableCell>
+                     {/* Nueva columna de Fecha de Actualización */}
+                     <TableCell sx={{ textAlign: "center"}}>
+                        {editIndex === index ? (
+                          <TextField
+                            value={newData.fecha_actualizacion}
+                            onChange={(e) => handleInputChange(e, 'fecha_actualizacion')}
+                            onKeyDown={handleKeyDown}
+                            variant="outlined"
+                            size="small"
+                          />
+                        ) : (
+                          // Convertir la fecha de created_at a formato legible
+                          new Date(afp.created_at).toLocaleDateString("es-CL", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                          })
+                        )}
+                      </TableCell>
+                   </TableRow>
+                 ))
+               ) : (
+                 <TableRow>
+                   <TableCell colSpan={5} align="center">No se encontraron datos.</TableCell>
+                 </TableRow>
+               )}
+             </TableBody>
+           </Table>
+         </TableContainer>
+       
+         {/* Modal de confirmación */}
+         <Dialog open={openModal} onClose={() => setOpenModal(false)}>
+           <DialogTitle>Confirmar Guardado</DialogTitle>
+           <DialogContent>
+             <Typography>
+               ¿Estás seguro de guardar este nuevo registro de AFP?
+             </Typography>
+           </DialogContent>
+           <DialogActions>
+             {message && (
+               <div style={{ marginTop: '20px', color: message.includes('correctamente') ? 'green' : 'red' }}>
+                 {message}
+               </div>
+             )}
+             <Button onClick={() => setOpenModal(false)} color="error">
+               Cancelar
+             </Button>
+             <Button onClick={handleSave} variant="contained" color="primary">
+               Guardar
+             </Button>
+           </DialogActions>
+         </Dialog>
+       </Box>
       )}
 
       {/*******************************SECCION INDICADORES*****************************************************************************************/}
-
         {currentSection === "Indicadores" && (
-           <Box sx={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px' }}>
-           <Typography variant="h6" sx={{ marginBottom: '15px', fontWeight: 'bold', color: '#333' }}>
-             Indicadores Mensuales (UF, UTM, UTA)
-           </Typography>
-     
-           {/* Botón para abrir el modal de agregar un registro */}
-           <Button variant="contained" color="primary" onClick={() => handleOpen('add')}>
-             Agregar Registro
-           </Button>
-     
-           <TableContainer sx={{ boxShadow: 3, borderRadius: '8px', overflow: 'hidden', marginTop: '20px' }}>
-             <Table sx={{ minWidth: 650 }}>
-               <TableHead>
-                 <TableRow>
-                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
-                     Mes
+         <Box sx={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
+         <Typography
+           variant="h6"
+           sx={{ marginBottom: "15px", fontWeight: "bold", color: "#333" }}
+         >
+           Indicadores Mensuales (UF, UTM, UTA)
+         </Typography>
+   
+         <TableContainer
+           sx={{ boxShadow: 3, borderRadius: "8px", overflow: "hidden" }}
+         >
+           <Table sx={{ minWidth: 650 }}>
+             <TableHead>
+               <TableRow>
+                 {[
+                   "Mes",
+                   "UF",
+                   "UTM",
+                   "UTA",
+                   "Fecha de actualización",
+                 ].map((header, i) => (
+                   <TableCell
+                     key={i}
+                     sx={{
+                       fontWeight: "bold",
+                       backgroundColor: "#1976d2",
+                       color: "white",
+                       textAlign: "center",
+                     }}
+                   >
+                     {header}
                    </TableCell>
-                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
-                     UF
-                   </TableCell>
-                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
-                     UTM
-                   </TableCell>
-                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
-                     UTA
-                   </TableCell>
-                 </TableRow>
-               </TableHead>
-               <TableBody>
-                 {indicadores.map((indicador, index) => (
-                   <TableRow key={index}>
-                     <TableCell sx={{ textAlign: 'center' }}>{indicador.mes}</TableCell>
-                     <TableCell sx={{ textAlign: 'center' }}>${indicador.uf}</TableCell>
-                     <TableCell sx={{ textAlign: 'center' }}>{indicador.utm}</TableCell>
-                     <TableCell sx={{ textAlign: 'center' }}>{indicador.uta}</TableCell>
-                   </TableRow>
                  ))}
-               </TableBody>
-             </Table>
-           </TableContainer>
-     
-           {/* Modal para agregar un nuevo registro */}
-           <Modal
-             open={open.status && open.type === 'add'}
-             onClose={handleClose}
-             aria-labelledby="modal-title"
-             aria-describedby="modal-description"
+               </TableRow>
+             </TableHead>
+             <TableBody>
+              {Array.isArray(indicadores) ? (
+                indicadores.map((indicador, index) => (
+                  <TableRow key={index}>
+                    {["mes", "uf", "utm", "uta"].map((field, i) => (
+                      <TableCell key={i} onClick={() => handleEditIn(index, indicador)}>
+                        {editIndexIn === index && field !== "mes" ? (
+                          <TextField
+                            value={editedDataIn[field] || ""}
+                            onChange={(e) => handleInputChangeIn(e, field)}
+                            onKeyDown={handleKeyDownIn}
+                            variant="outlined"
+                            size="small"
+                            fullWidth
+                          />
+                        ) : field === "uf" || field === "utm" ? (
+                          formatCurrency(indicador[field], 2)
+                        ) : field === "uta" ? (
+                          formatCurrency(indicador[field], 0)
+                        ) : (
+                          indicador[field]
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      {indicador.created_at
+                        ? new Date(indicador.created_at).toLocaleDateString("es-CL", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : "Sin fecha"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : indicadores ? (
+                <TableRow>
+                  {["mes", "uf", "utm", "uta"].map((field, i) => (
+                    <TableCell key={i} onClick={() => handleEditIn(0, indicadores)}>
+                      {editIndexIn === 0 && field !== "mes" ? (
+                        <TextField
+                          value={editedDataIn[field] || ""}
+                          onChange={(e) => handleInputChangeIn(e, field)}
+                          onKeyDown={handleKeyDownIn}
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                        />
+                      ) : field === "uf" || field === "utm" ? (
+                        formatCurrency(indicadores[field], 2)
+                      ) : field === "uta" ? (
+                        formatCurrency(indicadores[field], 0)
+                      ) : (
+                        indicadores[field]
+                      )}
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    {indicadores.created_at
+                      ? new Date(indicadores.created_at).toLocaleDateString("es-CL", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
+                      : "Sin fecha"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    No hay datos disponibles.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+           </Table>
+         </TableContainer>
+   
+         {/* Modal de confirmación */}
+         <Modal open={modalOpenIn} onClose={handleCancel}>
+           <Box
+             sx={{
+               position: "absolute",
+               top: "50%",
+               left: "50%",
+               transform: "translate(-50%, -50%)",
+               backgroundColor: "white",
+               padding: "20px",
+               borderRadius: "8px",
+               boxShadow: 3,
+             }}
            >
+             <Typography variant="h6">¿Confirmar los cambios?</Typography>
              <Box
-               sx={{
-                 position: 'absolute',
-                 top: '50%',
-                 left: '50%',
-                 transform: 'translate(-50%, -50%)',
-                 backgroundColor: 'white',
-                 padding: '20px',
-                 borderRadius: '8px',
-                 width: '300px',
-                 boxShadow: 3,
-               }}
+               sx={{ marginTop: "20px", display: "flex", justifyContent: "space-between" }}
              >
-               <Typography id="modal-title" variant="h6" sx={{ marginBottom: '15px' }}>
-                 Agregar Indicador
-               </Typography>
-               <form onSubmit={handleSubmit}>
-                 <Grid container spacing={2}>
-                   <Grid item xs={12}>
-                     <TextField
-                       fullWidth
-                       label="Mes"
-                       name="mes"
-                       value={formData.mes}
-                       onChange={handleChangeIndicadores}
-                       required
-                     />
-                   </Grid>
-                   <Grid item xs={12}>
-                     <TextField
-                       fullWidth
-                       label="UF"
-                       name="uf"
-                       type="number"
-                       value={formData.uf}
-                       onChange={handleChangeIndicadores}
-                       required
-                     />
-                   </Grid>
-                   <Grid item xs={12}>
-                     <TextField
-                       fullWidth
-                       label="UTM"
-                       name="utm"
-                       type="number"
-                       value={formData.utm}
-                       onChange={handleChangeIndicadores}
-                       required
-                     />
-                   </Grid>
-                   <Grid item xs={12}>
-                     <TextField
-                       fullWidth
-                       label="UTA"
-                       name="uta"
-                       type="number"
-                       value={formData.uta}
-                       onChange={handleChangeIndicadores}
-                       required
-                     />
-                   </Grid>
-                   <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                   <Button type="submit" variant="contained" color="primary">
-                     Guardar
-                  </Button>
-                   </Grid>
-                 </Grid>
-               </form>
+               <Button onClick={handleCancel} color="error" variant="contained">
+                 Cancelar
+               </Button>
+               <Button onClick={handleConfirm} color="primary" variant="contained">
+                 Confirmar
+               </Button>
              </Box>
-           </Modal>
-         </Box>
+           </Box>
+         </Modal>
+       </Box>
         )}
       {/*******************************SECCION RENTA TOPE IMPONIBLE*****************************************************************************************/}
 

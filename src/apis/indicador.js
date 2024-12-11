@@ -245,10 +245,45 @@ export const buscarFuncionarioPorRut = async (rut) => {
 
     export const crearAsignacion = async (asignacion)  => {
       try {
-        const response = await axios.post(`${API_BASE_URL}/CrearAsignaciones`, asignacion);
+        const response = await axios.post(`${BASE_URL}/CrearAsignaciones`, asignacion);
         return response.data;
       } catch (error) {
         throw new  Error ('Error al comunicarse con el servidor')
+      }
+    };
+
+    export const listarAfps = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/afps`)
+        if(!response.ok){
+          throw new Error("Error al obtener las AFPs")
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        throw error;
+      }
+    };
+
+    
+    export const createAfp = async (afpData) => {
+      try {
+        const response = await fetch(`${BASE_URL}/afps`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(afpData),
+        });
+    
+        if (!response.ok) {
+          throw new Error("Error al crear la AFP");
+        }
+    
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        throw error;
       }
     };
 
