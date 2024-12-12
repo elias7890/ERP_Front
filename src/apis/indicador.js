@@ -299,7 +299,7 @@ export const buscarFuncionarioPorRut = async (rut) => {
 
     export const getFuncionarioDatosCompletos = async (rut) => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/funcionario/${rut}/datos-completos`);
+        const response = await axios.get(`${BASE_URL}/funcionario/${rut}/datos-liquidacion`);
         return response.data;
       } catch (error) {
         console.error('Error al obtener los datos del funcionario:', error);

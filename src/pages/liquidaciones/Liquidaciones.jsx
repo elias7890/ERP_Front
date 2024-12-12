@@ -14,6 +14,7 @@ const Liquidaciones = () => {
     asignacion_movilizacion: '',
     asignacion_colacion: '',
     afp: '',
+    tasa_afp:'',
     salud: '',
     seguro_cesantia: '',
     impuesto: '',
@@ -21,42 +22,38 @@ const Liquidaciones = () => {
     anticipo_sueldo: '',
     otros_descuentos: '',
   });
+  
 
   const [afps, setAfps] = useState([]);
   const [funcionario, setFuncionario] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await getFuncionarioDatosCompletos(rutFuncionario);
-        setFuncionario(data);
-      } catch (err) {
-        setError('No se pudo obtener los datos del funcionario');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (rutFuncionario) {
-      fetchData();
+  const handleBuscar = async () => {
+    if (!formData.rut_funcionario) {
+      alert("Por favor, ingresa un RUT antes de buscar.");
+      return;
     }
-  }, [rutFuncionario]);
   
-
-  const handleSelectAfpChange = (event) => {
-    const {  value } = event.target;
-   
-    setFormData((prevState) => ({
-      ...prevState,
-      afp: value,
-     
-    }));
+    try {
+      setLoading(true);
+      setError("");
+      const data = await getFuncionarioDatosCompletos(formData.rut_funcionario);
+      setFuncionario(data);
+      setFormData((prev) => ({
+        ...prev,
+        nombre_empleado: data.funcionario.nombre,
+        obra: data.funcionario.ubicacion,
+        sueldo_base: data.funcionario.sueldo,
+        afp: data.afp.nombre_afp,
+        tasa_afp: data.afp.tasa_afp,
+      }));
+    } catch (err) {
+      setError("No se encontraron datos para este RUT.");
+    } finally {
+      setLoading(false);
+    }
   };
-
-
 
   const salud = [
     {id: '1', name: 'Fonasa', descuento: 7},
@@ -68,30 +65,21 @@ const Liquidaciones = () => {
     {id: '7', name:'Esencial', descuento:7}
   ];
 
-  const handleAfpChange = (e) => {
-    const selectedDescuento = e.target.value; // El valor seleccionado será el descuento
-    setFormData({
-      ...formData,
-      afp: selectedDescuento, // Guardamos el descuento de la AFP
-    });
-  };
-
   // Manejo de cambios para el select de Salud
   const handleSaludChange = (e) => {
-    const selectedDescuento = e.target.value; // El valor seleccionado será el descuento
+    const selectedDescuento = e.target.value; 
     setFormData({
       ...formData,
-      salud: selectedDescuento, // Guardamos el descuento de Salud
+      salud: selectedDescuento, 
     });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -108,17 +96,51 @@ const Liquidaciones = () => {
     return `$${roundedNumber.toLocaleString("es-CL")}`;
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Datos del formularioaaaa:", formData);
+  
+    if (!formData.rut_funcionario) {
+      alert("Por favor, ingresa un RUT antes de enviar el formulario.");
+      return;
+    }
+  
+    const dataToSend = {
+      ...formData,
+      afp: formData.tasa_afp,
+    };
+  
     try {
-      const result = await createLiquidacion(formData);
-      console.log('Resultado recibido del backend:', result);
+      const result = await createLiquidacion(dataToSend); 
+      console.log("Resultado recibido del backend:", result);
+  
+      alert("¡La liquidación se creó correctamente!");
+  
+      setFormData({
+        rut_funcionario: "",
+        nombre_empleado: "",
+        fecha_liquidacion: "",
+        sueldo_base: "",
+        obra: "",
+        gratificacion: "",
+        asignacion_movilizacion: "",
+        asignacion_colacion: "",
+        afp: "",
+        tasa_afp: "",
+        salud: "",
+        seguro_cesantia: "",
+        impuesto: "",
+        rebaja: "",
+        anticipo_sueldo: "",
+        otros_descuentos: "",
+      });
     } catch (error) {
-      console.error('Error al enviar los datos:', error);
+      console.error("Error al enviar los datos:", error);
+  
+      alert("Hubo un error al crear la liquidación. Por favor, intenta de nuevo.");
     }
   };
+  
+
   return (
     <div className="form-wrapperLI">
       <div className="form-containerLi">
@@ -126,42 +148,47 @@ const Liquidaciones = () => {
         <form className="liquidacion-form" onSubmit={handleSubmit}>
           {/* RUT, Nombre y Fecha */}
           <div className="form-rowLI">
-            <div className="form-groupLI">
-              <label className="form-labelLI">RUT</label>
-              <input
-                className="form-inputLI"
-                type="text"
-                name="rut_funcionario"
-                value={formData.rut}
-                onChange={handleChange}
-                placeholder="Ej: 11111111-1"
-                required
-              />
-            </div>
-            <div className="form-groupLI">
-              <label className="form-labelLI">Nombre</label>
-              <input
-                className="form-inputLI"
-                type="text"
-                name="nombre_empleado"
-                value={formData.nombre}
-                onChange={handleChange}
-                placeholder="Ingrese nombre"
-                required
-              />
-            </div>
-            <div className="form-groupLI">
-              <label className="form-labelLI">Sucursal</label>
-              <input
-                className="form-inputLI"
-                type="text"
-                name="obra"
-                value={formData.obra}
-                onChange={handleChange}
-                placeholder="Ingrese nombre"
-                required
-              />
-            </div>
+          <div className="form-groupLI">
+          <div className="form-groupLI">
+          <label className="form-labelLI">RUT</label>
+          <input
+            className="form-inputLI"
+            type="text"
+            name="rut_funcionario"
+            value={formData.rut_funcionario} // Enlazado al estado
+            onChange={handleChange} // Actualiza el estado al escribir
+            placeholder="Ej: 11111111-1"
+            required
+          />
+          <button type="button" onClick={handleBuscar} className="btn-buscar">
+            Buscar
+          </button>
+        </div>
+        </div>
+        <div className="form-groupLI">
+          <label className="form-labelLI">Nombre</label>
+          <input
+            className="form-inputLI"
+            type="text"
+            name="nombre_empleado" // Coincide con el estado
+            value={formData.nombre_empleado} // Enlazado al estado
+            onChange={handleChange} // Permite modificar manualmente (opcional)
+            placeholder="Ingrese nombre"
+            required
+          />
+        </div>
+          <div className="form-groupLI">
+            <label className="form-labelLI">Sucursal</label>
+            <input
+              className="form-inputLI"
+              type="text"
+              name="obra" // Coincide con el estado
+              value={formData.obra} // Enlazado al estado
+              onChange={handleChange} // Permite modificar manualmente (opcional)
+              placeholder="Ingrese sucursal"
+              required
+            />
+          </div>
           </div>
           <div className="form-rowLI">
             <div className="form-groupLI">
@@ -235,25 +262,29 @@ const Liquidaciones = () => {
 
           {/* AFP y Salud */}
           <div className="form-rowLI">
-            <div className="form-groupLI">
-              <label className="form-labelLI">AFP</label>
-              {/* <select name="afp" value={formData.afp} onChange={handleSelectAfpChange} required>
-                <option value="">Seleccione una AFP</option>
-                {afps.map((afp) => (
-                  <option key={afp.afp} value={afp.tasa_afp}>
-                   {afp.afp} ({afp.tasa_afp}%)
-                  </option>
-                ))}
-              </select> */}
-              <select name="afp" value={formData.afp} onChange={handleSelectAfpChange} required>
-                <option value="">Seleccione una AFP</option>
-                {afps.map((afp) => (
-                  <option key={afp.afp} value={afp.tasa_afp}>
-                    {afp.afp} ({afp.tasa_afp}%)  
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="form-groupLI">
+          <label className="form-labelLI">AFP Asignada</label>
+          <input
+            className="form-inputLI"
+            type="text"
+            name="afp"
+            value={formData.afp} // Nombre de la AFP asignada
+            placeholder="Ingrese AFP"
+            readOnly // Campo solo lectura
+          />
+        </div>
+
+        <div className="form-groupLI">
+          <label className="form-labelLI">Tasa AFP</label>
+          <input
+            className="form-inputLI"
+            type="text"
+            name="tasa_afp"
+            value={`${formData.tasa_afp}%`} // Muestra la tasa con el símbolo de porcentaje
+            placeholder="Tasa de la AFP"
+            readOnly // Campo solo lectura
+          />
+        </div>
             <div className="form-groupLI">
               <label className="form-labelLI">Salud</label>
               <select name="salud" value={formData.salud} onChange={handleSaludChange} required>
