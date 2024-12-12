@@ -15,6 +15,7 @@ const Liquidaciones = () => {
     asignacion_colacion: '',
     afp: '',
     tasa_afp:'',
+    nombre_salud:'',
     salud: '',
     seguro_cesantia: '',
     impuesto: '',
@@ -47,6 +48,9 @@ const Liquidaciones = () => {
         sueldo_base: data.funcionario.sueldo,
         afp: data.afp.nombre_afp,
         tasa_afp: data.afp.tasa_afp,
+        nombre_salud: data.salud.nombre_salud,
+        porcentaje_descuento: data.salud.porcentaje_descuento
+
       }));
     } catch (err) {
       setError("No se encontraron datos para este RUT.");
@@ -54,16 +58,6 @@ const Liquidaciones = () => {
       setLoading(false);
     }
   };
-
-  const salud = [
-    {id: '1', name: 'Fonasa', descuento: 7},
-    {id: '2', name: 'Banmédica', descuento: 7},
-    {id: '3', name: 'Consalud', descuento: 7},
-    {id: '4', name: 'Cruz Blanca', descuento: 7},
-    {id: '5', name: 'Nueva MasVida', descuento:7},
-    {id: '6', name: 'Vida tres', descuento:7},
-    {id: '7', name:'Esencial', descuento:7}
-  ];
 
   // Manejo de cambios para el select de Salud
   const handleSaludChange = (e) => {
@@ -107,6 +101,7 @@ const Liquidaciones = () => {
     const dataToSend = {
       ...formData,
       afp: formData.tasa_afp,
+      salud: formData.porcentaje_descuento
     };
   
     try {
@@ -126,6 +121,7 @@ const Liquidaciones = () => {
         asignacion_colacion: "",
         afp: "",
         tasa_afp: "",
+        nombre_salud:"",
         salud: "",
         seguro_cesantia: "",
         impuesto: "",
@@ -174,7 +170,7 @@ const Liquidaciones = () => {
             value={formData.nombre_empleado} // Enlazado al estado
             onChange={handleChange} // Permite modificar manualmente (opcional)
             placeholder="Ingrese nombre"
-            required
+            readOnly
           />
         </div>
           <div className="form-groupLI">
@@ -186,7 +182,7 @@ const Liquidaciones = () => {
               value={formData.obra} // Enlazado al estado
               onChange={handleChange} // Permite modificar manualmente (opcional)
               placeholder="Ingrese sucursal"
-              required
+              readOnly
             />
           </div>
           </div>
@@ -268,9 +264,9 @@ const Liquidaciones = () => {
             className="form-inputLI"
             type="text"
             name="afp"
-            value={formData.afp} // Nombre de la AFP asignada
+            value={formData.afp} 
             placeholder="Ingrese AFP"
-            readOnly // Campo solo lectura
+            readOnly 
           />
         </div>
 
@@ -280,22 +276,35 @@ const Liquidaciones = () => {
             className="form-inputLI"
             type="text"
             name="tasa_afp"
-            value={`${formData.tasa_afp}%`} // Muestra la tasa con el símbolo de porcentaje
+            value={`${formData.tasa_afp}%`} 
             placeholder="Tasa de la AFP"
-            readOnly // Campo solo lectura
+            readOnly 
           />
         </div>
             <div className="form-groupLI">
-              <label className="form-labelLI">Salud</label>
-              <select name="salud" value={formData.salud} onChange={handleSaludChange} required>
-                <option value="">Seleccione una opción de Salud</option>
-                {salud.map((item) => (
-                  <option key={item.id} value={item.descuento}>
-                    {item.name} ({item.descuento}%)
-                  </option>
-                ))}
-             </select>
-            </div>
+            <label className="form-labelLI">Nombre de Salud</label>
+            <input
+              className="form-inputLI"
+              type="text"
+              name="nombre_salud"
+              value={formData.nombre_salud || ""}
+              onChange={handleChange}
+              placeholder="Nombre del sistema de salud"
+              readOnly
+            />
+          </div>
+          <div className="form-groupLI">
+            <label className="form-labelLI">Porcentaje de Descuento</label>
+            <input
+              className="form-inputLI"
+              type="text"
+              name="porcentaje_descuento"
+              value={`${formData.porcentaje_descuento}%`} 
+              onChange={handleChange}
+              placeholder="Porcentaje de descuento"
+              readOnly
+            />
+          </div>
           </div>
 
           {/* Seguro Cesantía, Impuesto y Rebaja Impuesto */}

@@ -306,5 +306,4 @@ export const buscarFuncionarioPorRut = async (rut) => {
         throw error;
       }
     };
-
-    
+ 
