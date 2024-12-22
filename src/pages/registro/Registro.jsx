@@ -46,15 +46,99 @@ function Registro() {
 
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+    const [isAdult, setIsAdult] = useState(true);
+    const [emailError, setEmailError] = useState('');
+    const [phoneError, setPhoneError] = useState('');
+    const [rutError, setRutError] = useState('');
 
-    // Manejar cambios en los campos del formulario
-    const handleChange = (e) => {
-      const { name, value } = e.target;
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
+    const validarRut = (rut) => {
+      const cleanRut = rut.replace(/\./g, "").replace(/-/g, "");
+      if (!/^\d{7,8}[0-9kK]$/.test(cleanRut)) return false;
+
+      const body = cleanRut.slice(0, -1);
+      let dv = cleanRut.slice(-1).toUpperCase();
+      let sum = 0;
+      let multipler = 2;
+
+      for (let i = body.length - 1; i >= 0; i--) {
+        sum += parseInt(body[i]) * multipler;
+        multipler = multipler === 7 ? 2 : multipler + 1;
+      }
+
+      const caculatedDv = 11 - (sum % 11);
+      const calculatedDv = caculatedDv === 11 ? "0" : caculatedDv === 10 ? "K" : caculatedDv.toString();
+
+      return dv === calculatedDv;
+    }
+
+
+    const validateAge = (date) => {
+      if (!date) return true; // Si no hay fecha, no mostrar error
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const dayDiff = today.getDate() - birthDate.getDate();
+  
+      return (
+        age > 18 || (age === 18 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0)))
+      );
     };
+
+    
+  const validarCorreo = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Por favor, ingrese un correo electrónico válido.');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const validarTelefono = (phone) => {
+    const phoneRegex = /^(?:\+56)?\s?9\d{8}$/;
+    if (!phoneRegex.test(phone)) {
+        setPhoneError('Por favor, ingrese un número de celular válido (Ejemplo: +569XXXXXXXX o 9XXXXXXXX).');
+      } else {
+        setPhoneError('');
+      }
+  };
+
+    
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({...prev, [name]: value, }));
+
+        const Validators = {
+            email: validarCorreo,
+            telefono: validarTelefono,
+            telefono_emergencia: validarTelefono
+        };
+
+        if (value === "" || validarRut(value)) {
+          setRutError(true);
+        } else {
+          setRutError(false);
+        }
+
+        if (name === "fecha_nacimiento") {
+          const isOver18 = validateAge(value);
+          setIsAdult(isOver18);
+        }
+
+        if( Validators[name]){
+            Validators[name](value);
+        }
+        if (
+            (name === "banco" && value === "Banco Estado" && formData.tipo_cuenta === "Cuenta Rut") ||
+            (name === "tipo_cuenta" && value === "Cuenta Rut" && formData.banco === "Banco Estado")
+          ) {
+            
+            const rutSinDigitoVerificador = formData.rut_funcionario.split('-')[0];
+            setFormData((prev) => ({ ...prev, num_cuenta: rutSinDigitoVerificador }));
+          }
+      };
+
 
     // Manejar envío del formulario
     const handleSubmit = async (e) => {
@@ -108,8 +192,7 @@ function Registro() {
 
  
     return (
-          <div className="formulario-container">
-          
+          <div className="formulario-container">  
           <nav className="navFunc">
                 <a 
                     onClick={() => setActiveSection("antecedentesPersonales")} 
@@ -158,27 +241,52 @@ function Registro() {
                     <div className="form-group">
                     <label>Nombre completo:</label>
                     <input type="text" name="nombre_completo" className='input-small' value={formData.nombre_completo} onChange={handleChange}/>
-
+                    
                     <label>Cédula de identidad:</label>
-                    <input type="text" name="rut_funcionario" className='input-small' value={formData.rut_funcionario} onChange={handleChange}/>
-        
+                      <input
+                        type="text"
+                        name="rut_funcionario"
+                        className={`input-small rut-input ${rutError ? "" : "rut-input-error"}`}
+                        value={formData.rut_funcionario}
+                        autoComplete="off"
+                        placeholder={rutError ? "12345678-9" : "RUT inválido"}
+                        onChange={handleChange}
+                      />
+                                                      
                     <label>Fecha de nacimiento:</label>
-                    <input type="date" name="fecha_nacimiento" className='input-small' value={formData.fecha_nacimiento} onChange={handleChange} />
-
+                      <div className="input-wrapper">
+                        <input
+                          type="date"
+                          name="fecha_nacimiento"
+                          className={`input-small ${isAdult ? "" : "date-input-error"}`}
+                          value={formData.fecha_nacimiento}
+                          onChange={handleChange}
+                          placeholder={isAdult ? "" : "Debes ser mayor de 18 años"}
+                        />
+                      </div>
+                    
                     <label>Estado Civil:</label>
                         <select  name="estado_civil"className="selct" value={formData.estado_civil} onChange={handleChange}>
                         <option value="" >Seleccionar</option>
-                        <option value="casado" >Casado</option>
-                        <option value="soltero" >Soltero</option>
+                        <option value="casado" >Casado(a)</option>
+                        <option value="soltero" >Soltero(a)</option>
+                        <option value="conviviente" >Conviviente civil</option>
+                        <option value="separado" >Separado(a)</option>
+                        <option value="divorciado" >Divorciado(a)</option>
+                        <option value="viudo" >Viudo(a)</option>
                         </select>
                     </div>
-      
+                    
+                    &nbsp;
                     <div className="form-group">
                     <label>Domicilio:</label>
                     <input type="text" name="domicilio" className='input-small' value={formData.domicilio} onChange={handleChange}/>
-        
+                    
                     <label>Email:</label>
-                    <input type="email" name="email" className='input-small' value={formData.email} onChange={handleChange}/>
+                    <div className="input-wrapper">
+                    <input type="email" name="email" className="input-small" value={formData.email} onChange={handleChange}/>
+                    <p className={`warning-message ${emailError ? 'visible' : ''}`}>{emailError}</p>
+                    </div>
                     </div>
                     <div className="form-group">
                     <label>Estudios:</label>
@@ -188,7 +296,10 @@ function Registro() {
                     <input type="text" name="nacionalidad" className='input-small' value={formData.nacionalidad} onChange={handleChange}/>
         
                     <label>Teléfono:</label>
+                    <div className="input-wrapper">
                     <input type="tel" name="telefono" className='input-small' value={formData.telefono} onChange={handleChange}/>
+                    <p className={`warning-message ${phoneError ? 'visible' : ''}`}>{phoneError}</p>
+                    </div>
                     </div>
             </section>
         )}
@@ -204,19 +315,33 @@ function Registro() {
                         <option value="Cuprum">AFP Cuprum</option>
                         <option value="Habitat">AFP Habitat</option>
                         <option value="Modelo">AFP Modelo</option>
-                        <option value="PlanV">AFP PlanVital</option>
-                        <option value="ProV">AFP ProVida</option>
+                        <option value="PlanVital">AFP PlanVital</option>
+                        <option value="ProVida">AFP ProVida</option>
                         <option value="Uno">AFP Uno</option>
                     </select>
                     <label>Salud:</label>
                     <select name="salud" className="selct" value={formData.salud} onChange={handleChange}>
                         <option value="">Seleccione</option>
                         <option value="Fonasa">Fonasa</option>
-                        <option value="Isapre">Isapre</option>
+                        <option value="Isapre Colmena">Isapre Colmena</option>
+                        <option value="Isapre Banmédica">Isapre Banmédica</option>
+                        <option value="Isapre Consalud">Isapre Consalud</option>
+                        <option value="Isapre Vida Tres">Isapre Vida Tres</option>
+                        <option value="Isapre Cruz Blanca">Isapre Cruz Blanca</option>
+                        <option value="Isapre Nueva Masvida">Isapre Nueva Masvida</option>
                     </select>   
 
                     <label>Alergico a:</label>
-                    <input type="text" name="alergico" className='input-small' value={formData.alergico} onChange={handleChange} />
+                    <select name="alergico" id="" className="selct" value={formData.alergico} onChange={handleChange}>
+                        <option value="">Seleccione</option>
+                        <option value="Ninguno">Sin Antecedentes</option>
+                        <option value="Polvo">Polvo</option>
+                        <option value="Animales">Animales</option>
+                        <option value="Polen">Polen</option>
+                        <option value="Alimentos">Alimentos</option>
+                        <option value="Medicamentos">Medicamentos</option>
+                        <option value="Otros">Otros</option>
+                    </select>
                     </div>
                 </section>
             )}
@@ -226,19 +351,43 @@ function Registro() {
               <section className="form-section">
                 <h3>Datos Bancarios</h3>
                 <div className="form-group">
-                  <label>Banco:</label>
-                  <input type="text" name="banco" className='input-small' value={formData.banco} onChange={handleChange}/>
+                <label>Banco:</label>
+                    <select
+                    name="banco"
+                    className="selct"
+                    value={formData.banco}
+                    onChange={handleChange}
+                    >
+                    <option value="">Seleccione su banco</option>
+                    <option value="Banco de Chile">Banco de Chile</option>
+                    <option value="Banco Estado">Banco Estado</option>
+                    <option value="Banco Santander">Banco Santander</option>
+                    <option value="Banco BCI">Banco BCI</option>
+                    <option value="Banco Itaú">Banco Itaú</option>
+                    <option value="Scotiabank">Scotiabank</option>
+                    <option value="Banco Falabella">Banco Falabella</option>
+                    <option value="Banco Ripley">Banco Ripley</option>
+                    <option value="Banco Consorcio">Banco Consorcio</option>
+                    <option value="Banco Security">Banco Security</option>
+                    <option value="Banco Internacional">Banco Internacional</option>
+                    <option value="Banco BTG Pactual">Banco BTG Pactual</option>
+                    <option value="Banco Desarrollo">Banco Desarrollo</option>
+                    </select>
+
+
+                <label>Tipo de cuenta:</label>
+                  <select name="tipo_cuenta" id=""className='selct' value={formData.tipo_cuenta} onChange={handleChange}>
+                    <option value=""> Seleccione</option>
+                    <option >Cuenta Corriente</option>
+                    <option >Cuenta Rut</option>
+                    <option >Cuenta Vista</option>
+                    <option >Cuenta de Ahorro</option>
+                  </select>
       
                   <label>N° cuenta:</label>
                   <input type="text" name="num_cuenta" className='input-small' value={formData.num_cuenta} onChange={handleChange} />
       
-                  <label>Tipo de cuenta:</label>
-                  <select name="tipo_cuenta" id=""className='selct' value={formData.tipo_cuenta} onChange={handleChange}>
-                    <option value=""> Seleccione</option>
-                    <option >Cuenta Corriente</option>
-                    <option >Cuenta Vista</option>
-                    
-                  </select>
+                  
                   
                 </div>
               </section>
@@ -269,12 +418,26 @@ function Registro() {
                 <div className="form-group">
                     <div className="form-item">
                         <label>Jornada de trabajo:</label>
-                        <input type="text" name="jornada" className="input-small" value={formData.jornada} onChange={handleChange}/>
+                        <select name="jornada" id="" className="selct" value={formData.jornada} onChange={handleChange}>
+                            <option value="">Seleccione</option>
+                            <option value="Completa">Completa</option>
+                            <option value="Parcial">Parcial</option>
+                            <option value="Por Turnos">Por Turnos</option>
+                            <option value="Flexible">Flexible</option>
+                        </select>
                     </div>
                     
                     <div className="form-item">
                         <label>Tipo de contrato:</label>
-                        <input type="text" name="tipo_contrato" className="input-small" value={formData.tipo_contrato} onChange={handleChange}/>
+                        <select name="tipo_contrato" id="" className="selct" value={formData.tipo_contrato} onChange={handleChange}>
+                            <option value="">Seleccione</option>
+                            <option value="Indefinido">Indefinido</option>
+                            <option value="Plazo Fijo">Plazo Fijo</option>
+                            <option value="Plazo Parcial">Parcial</option>
+                            <option value="Por Obra o Faena">Por Obra o Faena</option>
+                            <option value="Por Proyecto">Por Proyecto</option>
+                            <option value="Por Temporada">Por Temporada</option>
+                        </select>
                     </div>
 
                     <div className="form-item">
@@ -291,6 +454,26 @@ function Registro() {
                         <label>Horario de trabajo:</label>
                         <input type="text" name="horario" className="input-small" value={formData.horario} onChange={handleChange}/>
                     </div>
+                    {/* <div className="form-item">
+  <label>Horario de trabajo:</label>
+  <div className="time-input-wrapper">
+    <input
+      type="time"
+      name="horarioInicio"
+      className="input-time"
+      value={formData.horarioInicio}
+      onChange={(e) => setFormData({ ...formData, horarioInicio: e.target.value })}
+    />
+    <span>a</span>
+    <input
+      type="time"
+      name="horarioFin"
+      className="input-time"
+      value={formData.horarioFin}
+      onChange={(e) => setFormData({ ...formData, horarioFin: e.target.value })}
+    />
+  </div>
+</div> */}
 
                     <div className="form-item">
                         <label>Sueldo:</label>

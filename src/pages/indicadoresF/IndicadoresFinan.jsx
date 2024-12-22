@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./IndicadoresFinan.scss";
-import { Table, TableBody, TableCell, Modal, TableContainer, TableHead, TableRow, TextField, Button, IconButton, Typography, Box, Dialog, Grid,         
+import { Table, TableBody, TableCell, Modal, TableContainer, TableHead, TableRow, TextField, Button, Typography, Box, Dialog, Grid,         
   DialogActions,       
   DialogContent,       
   DialogTitle,
   Snackbar,
+  Paper,
+  CircularProgress,
   Alert         
   } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { actualizarIndicadores, obtenerIndicadoresPorMes, obtenerMesActual, 
-         getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion, listarAfps, createAfp, obtenerTodosIndicadores } from "../../apis/indicador";
+         getUltimoRegistro, crearRegistro, traerAsiganaciones, crearAsignacion, 
+         listarAfps, createAfp, obtenerTodosIndicadores, getRegistrosSalud, actualizarRegistroSalud } from "../../apis/indicador";
 
 function IndicadoresFinan() {
   const [currentSection, setCurrentSection] = useState("AFP");
@@ -28,7 +31,15 @@ function IndicadoresFinan() {
   const [modalOpenIn, setModalOpenIn] = useState(false);
   const [modalTodosOpen, setModalTodosOpen] = useState(false);
   const [todosIndicadores, setTodosIndicadores] = useState([]);
-  /*Fin de la tabla indicadores */
+  /**de la tabla salud */
+  const [loading, setLoading] = useState(true);
+  const [dataSalud, setDataSalud] = useState([]);
+  const [editingRow, setEditingRow] = useState(null); 
+  const [editedValue, setEditedValue] = useState(null); 
+  const [isModalOpenSa, setModalOpenSa] = useState(false); 
+  const [selectedRow, setSelectedRow] = useState(null);  
+  
+ /**tabla afp */
   const [afpData, setAfpData] = useState([]);
   const [editIndex, setEditIndex] = useState(null); 
   const [newData, setNewData] = useState({});
@@ -41,7 +52,6 @@ function IndicadoresFinan() {
     RentaMin: '',
     RentaMax: ''
   });
-
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [formValues, setFormValues] = useState({
@@ -176,6 +186,58 @@ function IndicadoresFinan() {
   
     fetchRentasData(); 
   }, []); 
+
+  useEffect(() => {//Registros de salud
+    const fetchData = async () => {
+      try {
+        const registros = await getRegistrosSalud(); 
+        setDataSalud(registros);
+      } catch (error) {
+        console.error("Error al cargar los datos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleModalOpen = (row) => {
+    setSelectedRow(row);
+    setModalOpenSa(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpenSa(false);
+    setEditingRow(null); 
+    setEditedValue(null); 
+  };
+
+  // Confirmar y guardar cambios
+  const handleConfirmSalud = async () => {
+    try {
+      if (editedValue !== null && selectedRow) {
+        const response = await actualizarRegistroSalud(
+          selectedRow.nombre_salud,
+          editedValue
+        );
+        setDataSalud((prevData) =>
+          prevData.map((item) =>
+            item.id === selectedRow.id
+              ? { ...item, porcentaje_descuento: editedValue }
+              : item
+          )
+        );
+        console.log("Registro actualizado:", response.message);
+        await fetchData();
+      }
+    } catch (error) {
+      console.error("Error al confirmar la edición:", error);
+    } finally {
+      handleModalClose();
+    }
+  };
+
   const handleSubmitRentas = async () => {
     try {
       await crearRegistro(formValues);
@@ -384,8 +446,6 @@ function IndicadoresFinan() {
     }).format(value);
   };
 
-
-
   return (
     <div className="containerFun">
       <nav className="navbarFun">
@@ -406,6 +466,9 @@ function IndicadoresFinan() {
         </button>
         <button className={currentSection === "APV" ? "active" : ""} onClick={() => setCurrentSection("APV")}>
           APV
+        </button>
+        <button className={currentSection === "Salud" ? "active" : ""} onClick={() => setCurrentSection("Salud")}>
+          Salud
         </button>
       </nav>
 
@@ -1051,6 +1114,154 @@ function IndicadoresFinan() {
         </Alert>
       </Snackbar>
     </Box>
+      )}
+
+      {/********************************SECCION SALUD**************************************************************************************/}
+
+      {currentSection === "Salud" && (
+          <Box
+          sx={{
+            padding: "20px",
+            backgroundColor: "white",
+            borderRadius: "8px",
+            boxShadow: 3,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              marginBottom: "15px",
+              fontWeight: "bold",
+              color: "#333",
+            }}
+          >
+            Sistemas de Salud
+          </Typography>
+    
+          <TableContainer
+            component={Paper}
+            sx={{
+              boxShadow: 3,
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
+          >
+            <Table sx={{ minWidth: 650 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      backgroundColor: "#1976d2",
+                      color: "white",
+                      textAlign: "center",
+                    }}
+                  >
+                    Nombre
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      backgroundColor: "#1976d2",
+                      color: "white",
+                      textAlign: "center",
+                    }}
+                  >
+                    Porcentaje de Descuento
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      backgroundColor: "#1976d2",
+                      color: "white",
+                      textAlign: "center",
+                    }}
+                  >
+                    Fecha de Creación
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  dataSalud.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell sx={{ textAlign: "center" }}>
+                        {item.nombre_salud}
+                      </TableCell>
+                      <TableCell sx={{ textAlign: "center" }}>
+                        {editingRow === item.id ? (
+                          <TextField
+                            type="number"
+                            defaultValue={item.porcentaje_descuento}
+                            onChange={(e) => setEditedValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleModalOpen(item); // Abre el modal al presionar Enter
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            onDoubleClick={() => setEditingRow(item.id)} // Habilita la edición al hacer doble clic
+                            style={{ cursor: "pointer" }}
+                          >
+                            {item.porcentaje_descuento}%
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ textAlign: "center" }}>
+                        {new Date(item.updated_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+    
+          {/* Modal de Confirmación */}
+          <Modal open={isModalOpenSa} onClose={handleModalClose}>
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 400,
+                backgroundColor: "white",
+                padding: "20px",
+                boxShadow: 24,
+                borderRadius: "8px",
+              }}
+            >
+              <Typography variant="h6" sx={{ marginBottom: "15px" }}>
+                Confirmar Cambio
+              </Typography>
+              <Typography sx={{ marginBottom: "15px" }}>
+                ¿Estás seguro de que deseas cambiar el porcentaje de descuento a{" "}
+                <b>{editedValue}%</b>?
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleConfirmSalud}
+                sx={{ marginRight: "10px" }}
+              >
+                Confirmar
+              </Button>
+              <Button variant="outlined" onClick={handleModalClose}>
+                Cancelar
+              </Button>
+            </Box>
+          </Modal>
+        </Box>
       )}
     </div>
     

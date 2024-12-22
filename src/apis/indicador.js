@@ -306,4 +306,30 @@ export const buscarFuncionarioPorRut = async (rut) => {
         throw error;
       }
     };
- 
+
+    export const getRegistrosSalud = async () =>  {
+      try {
+        const response = await axios.get(`${BASE_URL}/salud`);
+        return response.data;
+      } catch (error) {
+        console.error("Error al obtener los registros de salud:", error);
+        throw error; 
+      }
+    };
+
+    export const actualizarRegistroSalud = async (nombre_salud, porcentaje_descuento) => {
+      try {
+        // Asegúrate de que el porcentaje se envíe como número sin comas
+        const formattedPorcentaje = String(porcentaje_descuento).replace(",", ".");
+        
+        const response = await axios.post(`${BASE_URL}/Registro/salud`, {
+          nombre_salud,
+          porcentaje_descuento: parseFloat(formattedPorcentaje), // Envía como número
+        });
+    
+        return response.data;
+      } catch (error) {
+        console.error("Error al crear o actualizar el registro:", error);
+        throw error;
+      }
+    };

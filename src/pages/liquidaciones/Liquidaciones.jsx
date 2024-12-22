@@ -223,7 +223,7 @@ const Liquidaciones = () => {
                 value={formatCurrency(formData.gratificacion)}
                 onChange={handleInputChange}
                 placeholder="Ingrese gratificación"
-                required
+                readOnly
               />
             </div> 
           </div>
@@ -276,7 +276,7 @@ const Liquidaciones = () => {
             className="form-inputLI"
             type="text"
             name="tasa_afp"
-            value={`${formData.tasa_afp}%`} 
+            value={formData.tasa_afp ? `${formData.tasa_afp}%`: ""} 
             placeholder="Tasa de la AFP"
             readOnly 
           />
@@ -299,7 +299,7 @@ const Liquidaciones = () => {
               className="form-inputLI"
               type="text"
               name="porcentaje_descuento"
-              value={`${formData.porcentaje_descuento}%`} 
+              value={formData.porcentaje_descuento ? `${formData.porcentaje_descuento}%` : ""}
               onChange={handleChange}
               placeholder="Porcentaje de descuento"
               readOnly
@@ -330,7 +330,6 @@ const Liquidaciones = () => {
                 value={formatCurrency(formData.impuesto)}
                 onChange={handleInputChange}
                 placeholder="Ingrese impuesto"
-                required
               />
             </div>
             <div className="form-groupLI">
@@ -342,7 +341,6 @@ const Liquidaciones = () => {
                 value={formatCurrency(formData.rebaja)}
                 onChange={handleInputChange}
                 placeholder="Ingrese rebaja de impuesto"
-                required
               />
             </div>
           </div>
@@ -358,7 +356,6 @@ const Liquidaciones = () => {
                 value={formatCurrency(formData.anticipo_sueldo)}
                 onChange={handleInputChange}
                 placeholder="Ingrese anticipo sueldo"
-                required
               />
             </div>
             <div className="form-groupLI">
@@ -370,7 +367,6 @@ const Liquidaciones = () => {
                 value={formatCurrency(formData.otros_descuentos)}
                 onChange={handleInputChange}
                 placeholder="Ingrese otros descuentos"
-                required
               />
             </div>
           </div>
