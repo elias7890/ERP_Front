@@ -224,8 +224,8 @@ function Funcionarios(){
                     <th></th>
                   </tr>
                   <tr>
-                    <th>Discapacidad:&nbsp;</th>
-                    <th>Asiganación de pesión de invalidez:&nbsp;</th>
+                    {/* <th>Discapacidad:&nbsp;</th>
+                    <th>Asiganación de pesión de invalidez:&nbsp;</th> */}
                   </tr>
                   <tr>
                     <th><strong>Datos de Previsión y Salud</strong></th>
