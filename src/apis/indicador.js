@@ -333,3 +333,23 @@ export const buscarFuncionarioPorRut = async (rut) => {
         throw error;
       }
     };
+
+    export const fetchNationalities = async () => {
+      try {
+        const response = await fetch('https://restcountries.com/v3.1/all');
+        const data = await response.json();
+    
+        // Extraer solo lo necesario: nombre del país y gentilicio
+        const nationalities = data.map((country) => ({
+          name: country.name.common,
+          demonym: country.demonyms?.eng?.m || country.name.common, // Fallback si no hay gentilicio
+        }));
+    
+        // Ordenar alfabéticamente por nombre del país
+        nationalities.sort((a, b) => a.name.localeCompare(b.name));
+        return nationalities;
+      } catch (error) {
+        console.error('Error fetching nationalities:', error);
+        throw error; // Permitir manejar el error donde se llama la función
+      }
+    };

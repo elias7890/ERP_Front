@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import "./Registro.scss";
 import { Link, Outlet } from "react-router-dom";
-import { cargarFuncionario } from '../../apis/indicador';
+import { cargarFuncionario, fetchNationalities } from '../../apis/indicador';
 
 
 function Registro() {
@@ -34,7 +34,13 @@ function Registro() {
       tipo_contrato: "",
       instalacion: "",
       ubicacion: "",
-      horario: "",
+      horario: {
+        Lunes: { inicio: "", fin: "" },
+        Martes: { inicio: "", fin: "" },
+        Miércoles: { inicio: "", fin: "" },
+        Jueves: { inicio: "", fin: "" },
+        Viernes: { inicio: "", fin: "" },
+      },
       sueldo: "",
       fecha_ingreso: "",
       camisa: "",
@@ -51,6 +57,37 @@ function Registro() {
     const [emailError, setEmailError] = useState(false);
     const [telefonoError, setTelefonoError] = useState(false);
     const [rutError, setRutError] = useState('');
+    const [showModal, setShowModal] = useState(false);
+
+    const calcularHoras = (inicio, fin) => {
+      const [hInicio, mInicio] = inicio.split(":").map(Number);   
+      const [hFin, mFin] = fin.split(":").map(Number);
+      const totalHoras = hFin + mFin / 60 - (hInicio + mInicio / 60); 
+      return totalHoras > 0 ? totalHoras : 24 + totalHoras; 
+
+    };
+
+    const calcularTotalSemanal = () => {
+      return Object.values(formData.horario).reduce((total, { inicio, fin }) => {
+        if (inicio && fin) {
+          return total + calcularHoras(inicio, fin);
+        }
+        return total; 
+      },  0);
+    };
+
+    const handleHorarioChange = (dia, campo, valor) => {
+      setFormData((prev) => ({
+        ...prev,
+        horario: {
+          ...prev.horario,
+          [dia]: {
+            ...prev.horario[dia],
+            [campo] : valor,
+          },
+        },
+      }));
+    };
 
     const validarRut = (rut) => {
       const cleanRut = rut.replace(/\./g, "").replace(/-/g, "");
@@ -85,11 +122,15 @@ function Registro() {
         age > 18 || (age === 18 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0)))
       );
     };
-
+  
+    const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com", "seiconsultores.cl"];
     
     const validateEmail = (email) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
+      if (!emailRegex.test(email)) return false;
+
+      const domain = email.split("@")[1];
+      return allowedDomains.includes(domain);
     };
 
     const validateTelefono = (telefono) => {
@@ -111,6 +152,11 @@ function Registro() {
         if (name === "fecha_nacimiento") {
           const isOver18 = validateAge(value);
           setIsAdult(isOver18);
+
+          if (!isOver18) {
+            setFormData((prev) => ({ ...prev, [name]: "" }));
+            return;
+          }
         }
         if (
             (name === "banco" && value === "Banco Estado" && formData.tipo_cuenta === "Cuenta Rut") ||
@@ -206,7 +252,7 @@ function Registro() {
                     onClick={() => setActiveSection("terminosContratacion")} 
                     className={`tab ${activeSection === "terminosContratacion" ? "active" : ""}`}
                 >
-                Términos de Contratación
+                Condiciones de Contratación
                 </a>
                 <a 
                     onClick={() => setActiveSection("vestuario")} 
@@ -294,6 +340,7 @@ function Registro() {
                         <option value="Media">Educación Media</option>  
                         <option value="Tecnico">Educación Técnico</option>
                         <option value="Superior">Educación Superior</option>
+                        <option value="Incompleta">Educación Superior Incompleta</option>
                     </select>
                    
 
@@ -524,44 +571,57 @@ function Registro() {
                         <label>Horario de trabajo:</label>
                         <input type="text" name="horario" className="input-small" value={formData.horario} onChange={handleChange}/>
                     </div> */}
-                    <div className="form-item">
+                  <div className="form-item">
                       <label className="form-label">Horario de trabajo:</label>
-                      <div className="time-range-container">
-                        <div className="time-input-wrapper">
-                          <label>Desde:</label>
-                          <input
-                            type="time"
-                            name="horario_inicio"
-                            className="time-input"
-                            value={formData.horario.split("-")[0]} 
-                            onChange={(e) => {
-                              const horarioFin = formData.horario.split("-")[1] || "";
-                              setFormData({
-                                ...formData,
-                                horario: `${e.target.value}-${horarioFin}`, 
-                              });
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="time-input-wrapper">
-                          <label>Hasta:</label>
-                          <input
-                            type="time"
-                            name="horario_fin"
-                            className="time-input"
-                            value={formData.horario.split("-")[1]} 
-                            onChange={(e) => {
-                              const horarioInicio = formData.horario.split("-")[0] || "";
-                              setFormData({
-                                ...formData,
-                                horario: `${horarioInicio}-${e.target.value}`, 
-                              });
-                            }}
-                          />
+                      <button onClick={() => setShowModal(true)}>Configurar Horarios</button>
+                    </div>
+
+                    {showModal && (
+                      <div>
+                        {/* Fondo Oscuro */}
+                        <div
+                          className="modal-overlay"
+                          onClick={() => setShowModal(false)} // Cierra el modal al hacer clic fuera
+                        ></div>
+
+                        {/* Contenido del Modal */}
+                        <div className="modal">
+                          <div className="modal-content">
+                            <h3> Horarios</h3>
+                            <div className="horarios-container">
+                              {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].map((dia) => (
+                                <div key={dia} className="horario-dia">
+                                  <label>{dia}:</label>
+                                  <div className="time-range">
+                                    <input
+                                      type="time"
+                                      value={formData.horario[dia]?.inicio || ""}
+                                      onChange={(e) => handleHorarioChange(dia, "inicio", e.target.value)}
+                                    />
+                                    
+                                    <input
+                                      type="time"
+                                      value={formData.horario[dia]?.fin || ""}
+                                      onChange={(e) => handleHorarioChange(dia, "fin", e.target.value)}
+                                    />
+                                  </div>
+                                  {formData.horario[dia]?.inicio && formData.horario[dia]?.fin && (
+                                    <span>
+                                      Horas diarias:{" "}
+                                      {calcularHoras(formData.horario[dia].inicio, formData.horario[dia].fin).toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <div>
+                              <strong>Horas semanales: {calcularTotalSemanal().toFixed(2)}</strong>
+                            </div>
+                            <button onClick={() => setShowModal(false)}>Cerrar</button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                    
                     <div className="form-item">
                     <label>Sueldo Base:</label>
